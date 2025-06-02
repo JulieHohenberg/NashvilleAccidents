@@ -83,25 +83,25 @@ st.altair_chart(chart, use_container_width=True)
 #-------------------------------------------------------------------------------------------------#
 # Are there clusters of accidents in specific latitude/longitude regions?
 #-------------------------------------------------------------------------------------------------#
-# Filter for Nashville area
+# Filter copy of your data for Nashville bounds
 df_map = df.copy()
 df_map = df_map[(df_map['Lat'] >= 36.0) & (df_map['Lat'] <= 36.4) &
                 (df_map['Long'] >= -87.0) & (df_map['Long'] <= -86.5)]
 
-st.subheader("Nashville Accidents (Interactive Map with Zoom, Roads, and Tooltips)")
+st.subheader("Nashville Accidents on Interactive Map (Zoomable, Pannable, With Roads)")
 
-# Scatterplot layer (each accident is a circle)
-scatter_layer = pdk.Layer(
+# Each dot = accident, with tooltip and interactivity
+layer = pdk.Layer(
     "ScatterplotLayer",
     data=df_map,
     get_position='[Long, Lat]',
-    get_fill_color='[255, 0, 0, 160]',  # Red dots with some transparency
-    get_radius=40,  # Radius in meters
-    pickable=True,  # Enable tooltips
+    get_radius=40,
+    get_fill_color='[255, 0, 0, 150]',
+    pickable=True,
     auto_highlight=True,
 )
 
-# Map view settings
+# Map view configuration
 view_state = pdk.ViewState(
     latitude=36.16,
     longitude=-86.78,
@@ -109,12 +109,13 @@ view_state = pdk.ViewState(
     pitch=0,
 )
 
-# Show the map
-r = pdk.Deck(
-    layers=[scatter_layer],
+# Deck map setup with street basemap
+deck = pdk.Deck(
+    layers=[layer],
     initial_view_state=view_state,
     tooltip={"text": "Lat: {Lat}\nLong: {Long}"},
-    map_style="mapbox://styles/mapbox/streets-v12",  # Basemap with roads
+    map_style="mapbox://styles/mapbox/streets-v12",
 )
 
-st.pydeck_chart(r)
+# Show in Streamlit
+st.pydeck_chart(deck)
