@@ -88,33 +88,33 @@ df_map = df.copy()
 df_map = df_map[(df_map['Lat'] >= 36.0) & (df_map['Lat'] <= 36.4) &
                 (df_map['Long'] >= -87.0) & (df_map['Long'] <= -86.5)]
 
-st.subheader("Interactive Accident Heatmap Over Nashville")
+st.subheader("Nashville Accidents (Interactive Map with Zoom, Roads, and Tooltips)")
 
-# Define the layer
-heatmap_layer = pdk.Layer(
-    "HeatmapLayer",
+# Scatterplot layer (each accident is a circle)
+scatter_layer = pdk.Layer(
+    "ScatterplotLayer",
     data=df_map,
     get_position='[Long, Lat]',
-    aggregation='"SUM"',
-    threshold=0.2,
-    get_weight=1,
-    radiusPixels=60,
+    get_fill_color='[255, 0, 0, 160]',  # Red dots with some transparency
+    get_radius=40,  # Radius in meters
+    pickable=True,  # Enable tooltips
+    auto_highlight=True,
 )
 
-# Set the initial view state (centered on Nashville)
+# Map view settings
 view_state = pdk.ViewState(
     latitude=36.16,
     longitude=-86.78,
     zoom=10,
-    pitch=40,
+    pitch=0,
 )
 
-# Render the map
+# Show the map
 r = pdk.Deck(
-    layers=[heatmap_layer],
+    layers=[scatter_layer],
     initial_view_state=view_state,
     tooltip={"text": "Lat: {Lat}\nLong: {Long}"},
-    map_style="mapbox://styles/mapbox/streets-v12"  # Other options: 'light-v10', 'dark-v10', 'satellite-v9'
+    map_style="mapbox://styles/mapbox/streets-v12",  # Basemap with roads
 )
 
 st.pydeck_chart(r)
