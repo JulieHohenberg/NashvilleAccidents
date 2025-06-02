@@ -90,6 +90,14 @@ df_map = df_map[(df_map['Lat'] >= 36.0) & (df_map['Lat'] <= 36.4) &
 
 st.subheader("Nashville Accidents on Interactive Map (Zoomable, Pannable, With Roads)")
 
+# Set Mapbox token if available (get one at https://mapbox.com)
+MAPBOX_TOKEN = os.getenv("MAPBOX_API_KEY", "")
+if MAPBOX_TOKEN:
+    pdk.settings.mapbox_api_key = MAPBOX_TOKEN
+    map_style = "mapbox://styles/mapbox/streets-v12"
+else:
+    map_style = "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
+
 # Each dot = accident, with tooltip and interactivity
 layer = pdk.Layer(
     "ScatterplotLayer",
@@ -109,12 +117,12 @@ view_state = pdk.ViewState(
     pitch=0,
 )
 
-# Deck map setup with street basemap
+# Deck map setup with basemap (Mapbox or fallback)
 deck = pdk.Deck(
     layers=[layer],
     initial_view_state=view_state,
     tooltip={"text": "Lat: {Lat}\nLong: {Long}"},
-    map_style="mapbox://styles/mapbox/streets-v12",
+    map_style=map_style,
 )
 
 # Show in Streamlit
