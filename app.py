@@ -82,31 +82,33 @@ st.altair_chart(chart, use_container_width=True)
 #-------------------------------------------------------------------------------------------------#
 # Are there clusters of accidents in specific latitude/longitude regions?
 #-------------------------------------------------------------------------------------------------#
-# Filter to Nashville bounding box
-df = df[(df['Lat'] >= 36.0) & (df['Lat'] <= 36.4) &
-        (df['Long'] >= -87.0) & (df['Long'] <= -86.5)]
+df_map = df.copy()
 
-# Load background map of US counties and filter to Davidson County (Nashville)
+# Filter to Nashville bounding box
+df_map = df_map[(df_map['Lat'] >= 36.0) & (df_map['Lat'] <= 36.4) &
+                (df_map['Long'] >= -87.0) & (df_map['Long'] <= -86.5)]
+
+# Load background map and isolate Davidson County (FIPS 47037)
 counties = alt.topo_feature(data.us_10m.url, 'counties')
 nashville_map = alt.Chart(counties).mark_geoshape(
     fill='lightgray',
     stroke='white'
 ).transform_filter(
-    alt.datum.id == 47037  # Davidson County, TN (FIPS code 47037)
+    alt.datum.id == 47037
 ).properties(
     width=600,
     height=500
 )
 
-# Heatmap of accident density
-heatmap = alt.Chart(df).mark_rect().encode(
+# Heatmap layer
+heatmap = alt.Chart(df_map).mark_rect().encode(
     x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
     y=alt.Y('Lat:Q', bin=alt.Bin(maxbins=60), title='Latitude'),
     color=alt.Color('count():Q', scale=alt.Scale(scheme='reds'), title='Accident Count'),
     tooltip=['count()']
 )
 
-# Combine map + heatmap
+# Combined visualization
 combined = (nashville_map + heatmap).properties(
     title='Heatmap of Accident Clusters in Nashville Area'
 ).configure_axisX(labelAngle=0)
