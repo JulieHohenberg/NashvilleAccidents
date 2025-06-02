@@ -3,6 +3,7 @@ import os
 import streamlit as st
 import pandas as pd
 import altair as alt
+import pydeck as pdk
 
 # Load data
 df = pd.read_csv("data/nashville_accidents.csv")
@@ -82,36 +83,38 @@ st.altair_chart(chart, use_container_width=True)
 #-------------------------------------------------------------------------------------------------#
 # Are there clusters of accidents in specific latitude/longitude regions?
 #-------------------------------------------------------------------------------------------------#
+# Filter for Nashville area
 df_map = df.copy()
-
-# Filter to Nashville bounding box
 df_map = df_map[(df_map['Lat'] >= 36.0) & (df_map['Lat'] <= 36.4) &
                 (df_map['Long'] >= -87.0) & (df_map['Long'] <= -86.5)]
 
-# Load background map and isolate Davidson County (FIPS 47037)
-counties = alt.topo_feature(data.us_10m.url, 'counties')
-nashville_map = alt.Chart(counties).mark_geoshape(
-    fill='lightgray',
-    stroke='white'
-).transform_filter(
-    alt.datum.id == 47037
-).properties(
-    width=600,
-    height=500
+st.subheader("Interactive Accident Heatmap Over Nashville")
+
+# Define the layer
+heatmap_layer = pdk.Layer(
+    "HeatmapLayer",
+    data=df_map,
+    get_position='[Long, Lat]',
+    aggregation='"SUM"',
+    threshold=0.2,
+    get_weight=1,
+    radiusPixels=60,
 )
 
-# Heatmap layer
-heatmap = alt.Chart(df_map).mark_rect().encode(
-    x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
-    y=alt.Y('Lat:Q', bin=alt.Bin(maxbins=60), title='Latitude'),
-    color=alt.Color('count():Q', scale=alt.Scale(scheme='reds'), title='Accident Count'),
-    tooltip=['count()']
+# Set the initial view state (centered on Nashville)
+view_state = pdk.ViewState(
+    latitude=36.16,
+    longitude=-86.78,
+    zoom=10,
+    pitch=40,
 )
 
-# Combined visualization
-combined = (nashville_map + heatmap).properties(
-    title='Heatmap of Accident Clusters in Nashville Area'
-).configure_axisX(labelAngle=0)
+# Render the map
+r = pdk.Deck(
+    layers=[heatmap_layer],
+    initial_view_state=view_state,
+    tooltip={"text": "Lat: {Lat}\nLong: {Long}"},
+    map_style="mapbox://styles/mapbox/streets-v12"  # Other options: 'light-v10', 'dark-v10', 'satellite-v9'
+)
 
-# Display in Streamlit
-st.altair_chart(combined, use_container_width=True)
+st.pydeck_chart(r)
