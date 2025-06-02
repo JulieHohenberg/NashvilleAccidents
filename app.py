@@ -84,7 +84,7 @@ st.altair_chart(chart, use_container_width=True)
 # Are there clusters of accidents in specific latitude/longitude regions?
 #-------------------------------------------------------------------------------------------------#
 # Filter copy of your data for Nashville bounds
-df_map = df.copy()
+""" df_map = df.copy()
 df_map = df_map[(df_map['Lat'] >= 36.0) & (df_map['Lat'] <= 36.4) &
                 (df_map['Long'] >= -87.0) & (df_map['Long'] <= -86.5)]
 
@@ -126,7 +126,7 @@ deck = pdk.Deck(
 )
 
 # Show in Streamlit
-st.pydeck_chart(deck)
+st.pydeck_chart(deck) """
 
 # 3 weather charts
 weather_emoji_map = {
