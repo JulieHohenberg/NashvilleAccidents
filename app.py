@@ -80,55 +80,11 @@ chart = alt.Chart(melted).mark_bar().encode(
 # Display in Streamlit
 st.altair_chart(chart, use_container_width=True)
 
+
 #-------------------------------------------------------------------------------------------------#
-# Are there clusters of accidents in specific latitude/longitude regions?
+# How does weather impact the frequency and severity of accidents?
 #-------------------------------------------------------------------------------------------------#
-# Filter copy of your data for Nashville bounds
-""" df_map = df.copy()
-df_map = df_map[(df_map['Lat'] >= 36.0) & (df_map['Lat'] <= 36.4) &
-                (df_map['Long'] >= -87.0) & (df_map['Long'] <= -86.5)]
 
-st.subheader("Nashville Accidents on Interactive Map (Zoomable, Pannable, With Roads)")
-
-# Set Mapbox token if available (get one at https://mapbox.com)
-MAPBOX_TOKEN = os.getenv("MAPBOX_API_KEY", "")
-if MAPBOX_TOKEN:
-    pdk.settings.mapbox_api_key = MAPBOX_TOKEN
-    map_style = "mapbox://styles/mapbox/streets-v12"
-else:
-    map_style = "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
-
-# Each dot = accident, with tooltip and interactivity
-layer = pdk.Layer(
-    "ScatterplotLayer",
-    data=df_map,
-    get_position='[Long, Lat]',
-    get_radius=40,
-    get_fill_color='[255, 0, 0, 150]',
-    pickable=True,
-    auto_highlight=True,
-)
-
-# Map view configuration
-view_state = pdk.ViewState(
-    latitude=36.16,
-    longitude=-86.78,
-    zoom=10,
-    pitch=0,
-)
-
-# Deck map setup with basemap (Mapbox or fallback)
-deck = pdk.Deck(
-    layers=[layer],
-    initial_view_state=view_state,
-    tooltip={"text": "Lat: {Lat}\nLong: {Long}"},
-    map_style=map_style,
-)
-
-# Show in Streamlit
-st.pydeck_chart(deck) """
-
-# 3 weather charts
 weather_emoji_map = {
     "Clear": "☀️ Clear",
     "Rain": "🌧️ Rain",
@@ -145,10 +101,11 @@ emoji_to_weather = {v: k for k, v in weather_emoji_map.items()}
 df['Time of Day'] = df['is_night'].map({True: 'Night', False: 'Day'})
 
 # Sidebar weather selector
-top_weather = df['Weather Description'].value_counts().nlargest(8).index.tolist()
-emoji_options = [weather_emoji_map.get(w, w) for w in top_weather]
+top_weather = df['Weather Description'].fillna("Unknown").value_counts().nlargest(8).index.tolist()
+emoji_options = [weather_emoji_map.get(w, f"🔘 {w}") for w in top_weather]
+weather_lookup = dict(zip(emoji_options, top_weather))
 selected_emoji = st.sidebar.selectbox("Choose a weather condition to highlight", emoji_options)
-selected_weather = emoji_to_weather[selected_emoji]
+selected_weather = weather_lookup[selected_emoji]
 
 # CHART 1: Avg Injuries by Weather + Illumination
 grouped1 = (
