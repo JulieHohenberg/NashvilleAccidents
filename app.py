@@ -127,3 +127,108 @@ deck = pdk.Deck(
 
 # Show in Streamlit
 st.pydeck_chart(deck)
+
+# 3 weather charts
+weather_emoji_map = {
+    "Clear": "☀️ Clear",
+    "Rain": "🌧️ Rain",
+    "Snow": "❄️ Snow",
+    "Cloudy": "☁️ Cloudy",
+    "Fog": "🌫️ Fog",
+    "Thunderstorm": "⛈️ Thunderstorm",
+    "Drizzle": "🌦️ Drizzle",
+    "Unknown": "❓ Unknown"
+}
+emoji_to_weather = {v: k for k, v in weather_emoji_map.items()}
+
+# Clean and prep data
+df['Time of Day'] = df['is_night'].map({True: 'Night', False: 'Day'})
+
+# Sidebar weather selector
+top_weather = df['Weather Description'].value_counts().nlargest(8).index.tolist()
+emoji_options = [weather_emoji_map.get(w, w) for w in top_weather]
+selected_emoji = st.sidebar.selectbox("Choose a weather condition to highlight", emoji_options)
+selected_weather = emoji_to_weather[selected_emoji]
+
+# CHART 1: Avg Injuries by Weather + Illumination
+grouped1 = (
+    df.groupby(['Weather Description', 'Illumination Description'])
+    .agg(total_injuries=('Number of Injuries', 'sum'),
+         accident_count=('Weather Description', 'count'))
+    .reset_index()
+)
+grouped1['avg_injuries'] = grouped1['total_injuries'] / grouped1['accident_count']
+
+top_illum = df['Illumination Description'].value_counts().nlargest(6).index
+filtered1 = grouped1[
+    grouped1['Weather Description'].isin(top_weather) &
+    grouped1['Illumination Description'].isin(top_illum)
+]
+
+chart1 = alt.Chart(filtered1).mark_rect().encode(
+    x=alt.X('Illumination Description:N', title='Lighting Condition'),
+    y=alt.Y('Weather Description:N', title='Weather Condition'),
+    color=alt.Color('avg_injuries:Q', scale=alt.Scale(scheme='reds'), title='Avg Injuries per Accident'),
+    tooltip=['Weather Description', 'Illumination Description', 'avg_injuries'],
+    opacity=alt.condition(
+        f"datum['Weather Description'] == '{selected_weather}'", alt.value(1.0), alt.value(0.3)
+    )
+).properties(
+    title='Average Injuries by Weather and Lighting Condition',
+    width=400,
+    height=300
+)
+
+# CHART 2: Avg Fatalities by Weather + Illumination
+grouped2 = (
+    df.groupby(['Weather Description', 'Illumination Description'])
+    .agg(total_fatalities=('Number of Fatalities', 'sum'),
+         accident_count=('Weather Description', 'count'))
+    .reset_index()
+)
+grouped2['avg_fatalities'] = grouped2['total_fatalities'] / grouped2['accident_count']
+filtered2 = grouped2[
+    grouped2['Weather Description'].isin(top_weather) &
+    grouped2['Illumination Description'].isin(top_illum)
+]
+
+chart2 = alt.Chart(filtered2).mark_rect().encode(
+    x=alt.X('Illumination Description:N', title='Lighting Condition'),
+    y=alt.Y('Weather Description:N', title='Weather Condition'),
+    color=alt.Color('avg_fatalities:Q', scale=alt.Scale(scheme='reds'), title='Avg Fatalities per Accident'),
+    tooltip=['Weather Description', 'Illumination Description', 'avg_fatalities'],
+    opacity=alt.condition(
+        f"datum['Weather Description'] == '{selected_weather}'", alt.value(1.0), alt.value(0.3)
+    )
+).properties(
+    title='Average Fatalities by Weather and Lighting Condition',
+    width=400,
+    height=300
+)
+
+# CHART 3: Proportion of Accidents by Weather + Time 
+top_weather_10 = df['Weather Description'].value_counts().nlargest(10).index
+df_filtered3 = df[df['Weather Description'].isin(top_weather_10)]
+counts = df_filtered3.groupby(['Weather Description', 'Time of Day']).size().reset_index(name='Accident Count')
+weather_totals = df_filtered3.groupby('Weather Description').size().reset_index(name='Total')
+normalized = counts.merge(weather_totals, on='Weather Description')
+normalized['Proportion'] = normalized['Accident Count'] / normalized['Total']
+
+chart3 = alt.Chart(normalized).mark_rect().encode(
+    x=alt.X('Time of Day:N', title='Time of Day'),
+    y=alt.Y('Weather Description:N', sort='-x', title='Weather Condition'),
+    color=alt.Color('Proportion:Q', scale=alt.Scale(scheme='reds'), title='Proportion of Accidents'),
+    tooltip=['Weather Description', 'Time of Day', 'Accident Count', 'Proportion'],
+    opacity=alt.condition(
+        f"datum['Weather Description'] == '{selected_weather}'", alt.value(1.0), alt.value(0.3)
+    )
+).properties(
+    title='Proportion of Accidents by Weather Condition and Time of Day',
+    width=300,
+    height=400
+)
+
+# Display charts in Streamlit layout 
+st.altair_chart(chart1, use_container_width=False)
+st.altair_chart(chart2, use_container_width=False)
+st.altair_chart(chart3, use_container_width=False)
