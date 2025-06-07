@@ -39,7 +39,7 @@ df['day']          = df['Date and Time'].dt.day
 df['hour']         = df['Date and Time'].dt.hour
 df['day_of_week']  = df['Date and Time'].dt.dayofweek            # Monday=0 … Sunday=6
 df['is_weekend']   = df['day_of_week'].isin([5, 6])
-df['is_night']     = (df['hour'] >= 20) | (df['hour'] < 6)       # 8 PM–5 : 59 AM
+df['is_night']     = (df['hour'] >= 20) | (df['hour'] < 6)       # 8 PM–5:59 AM
 
 #-------------------------------------------------------------------------------------------------#
 # NaN Handling & Remove “OTHER/UNKNOWN”
@@ -82,41 +82,25 @@ sev_melt = sev_df.melt(
     value_name= 'Percentage'
 )
 
-# Bar layer ---------------------------------------------------------------
-bar = (
-    alt.Chart(sev_melt)
-    .mark_bar()
-    .encode(
-        x=alt.X('Weather Description:N', sort='-y',
-                title='Weather Condition'),
-        y=alt.Y('Percentage:Q', title='Percentage of Accidents'),
-        color=alt.Color('Severity Type:N',
-                        scale=alt.Scale(domain=['% with Injury',
-                                                '% with Fatality'],
-                                        range=['orange', 'crimson']),
-                        title='Severity Type'),
-        tooltip=['Weather Description', 'Severity Type',
-                 alt.Tooltip('Percentage:Q', format='.1f')]
-    )
-)
-
-# Text labels layer -------------------------------------------------------
-text = (
-    alt.Chart(sev_melt)
-    .mark_text(size=11, dy=-5, color='black')
-    .encode(
-        x=alt.X('Weather Description:N', sort='-y'),
-        y=alt.Y('Percentage:Q'),
-        detail='Severity Type:N',
-        text=alt.Text('Percentage:Q', format='.1f')
-    )
-)
-
 bar_chart = (
-    alt.layer(bar, text)
-       .properties(title='Proportion of Accidents with Injuries or Fatalities',
-                   height=420)
-       .configure_axisX(labelAngle=-35)
+    alt.Chart(sev_melt)
+      .mark_bar()
+      .encode(
+          x=alt.X('Weather Description:N',
+                  sort='-y',
+                  title='Weather Condition'),
+          y=alt.Y('Percentage:Q',
+                  title='Percentage of Accidents'),
+          color=alt.Color('Severity Type:N',
+                          scale=alt.Scale(domain=['% with Injury', '% with Fatality'],
+                                          range=['orange', 'crimson']),
+                          title='Severity Type'),
+          tooltip=['Weather Description', 'Severity Type',
+                   alt.Tooltip('Percentage:Q', format='.1f')]
+      )
+      .properties(title='Proportion of Accidents with Injuries or Fatalities',
+                  height=420)
+      .configure_axisX(labelAngle=-35)
 )
 
 st.altair_chart(bar_chart, use_container_width=True)
@@ -138,7 +122,8 @@ with f2:
                                list(top_illum),
                                default=list(top_illum))
 with f3:
-    metric_choice = st.selectbox("Metric 📊", ["Injuries", "Fatalities"], index=0)
+    metric_choice = st.selectbox("Metric 📊",
+                                 ["Injuries", "Fatalities"], index=0)
 
 #-------------------------------------------------------------------------------------------------#
 # Build Heat-map
@@ -170,7 +155,7 @@ def build_heatmap(df_in: pd.DataFrame,
         color_title = 'Avg Fatalities / Accident'
         fmt = '.3f'
 
-    # complete grid, no blanks ------------------------------------------
+    # complete grid so every combo has a tile ----------------------------
     full_idx = pd.MultiIndex.from_product(
         [w_list, i_list],
         names=['Weather Description', 'Illumination Description']
@@ -190,10 +175,8 @@ def build_heatmap(df_in: pd.DataFrame,
         alt.Chart(grp)
         .mark_rect()
         .encode(
-            x=alt.X('Illumination Description:N',
-                    title='Lighting Condition'),
-            y=alt.Y('Weather Description:N',
-                    title='Weather Condition'),
+            x=alt.X('Illumination Description:N', title='Lighting Condition'),
+            y=alt.Y('Weather Description:N',      title='Weather Condition'),
             color=alt.Color('avg_val:Q',
                             scale=color_scale,
                             title=color_title),
