@@ -30,7 +30,8 @@ else:
 #-------------------------------------------------------------------------------------------------#
 # DateTime Conversions
 #-------------------------------------------------------------------------------------------------#
-df['Date and Time'] = pd.to_datetime(df['Date and Time'], format='%m/%d/%Y %I:%M:%S %p')
+df['Date and Time'] = pd.to_datetime(df['Date and Time'],
+                                     format='%m/%d/%Y %I:%M:%S %p')
 df['year']         = df['Date and Time'].dt.year
 df['month']        = df['Date and Time'].dt.month
 df['day']          = df['Date and Time'].dt.day
@@ -99,13 +100,13 @@ bar_chart = (
 st.altair_chart(bar_chart, use_container_width=True)
 
 #-------------------------------------------------------------------------------------------------#
-# Filters for Heat-maps only (Weather + Lighting) – shown directly above the two charts
+# Filters for Heat-map & Metric selector
 #-------------------------------------------------------------------------------------------------#
 weather_opts = sorted(df['Weather Description'].unique())
 illum_opts   = sorted(df['Illumination Description'].unique())
 
-st.markdown("### 🎛️ Select Weather & Lighting for Heat-maps")
-fcol1, fcol2 = st.columns(2, gap="medium")
+st.markdown("### 🎛️ Select Heat-map Parameters")
+fcol1, fcol2, fcol3 = st.columns([3,3,2], gap="medium")
 with fcol1:
     sel_weather = st.multiselect("Weather Condition(s)  ☁️🌧️",
                                  weather_opts,
@@ -114,6 +115,9 @@ with fcol2:
     sel_illum = st.multiselect("Lighting Condition(s)  💡🌙",
                                illum_opts,
                                default=illum_opts)
+with fcol3:
+    metric_choice = st.selectbox("Metric  📊",
+                                 ["Injuries", "Fatalities"], index=0)
 
 filtered_df = df[
     df['Weather Description'].isin(sel_weather) &
@@ -121,64 +125,47 @@ filtered_df = df[
 ]
 
 #-------------------------------------------------------------------------------------------------#
-# Heat-map 1: Average Injuries / Accident
+# Heat-map builder
 #-------------------------------------------------------------------------------------------------#
-inj_grp = (
-    filtered_df.groupby(['Weather Description', 'Illumination Description'])
-    .agg(total_injuries=('Number of Injuries', 'sum'),
-         accident_count =('Weather Description', 'count'))
-    .reset_index()
-)
-inj_grp['avg_injuries'] = inj_grp['total_injuries'] / inj_grp['accident_count']
+def build_heatmap(df_in: pd.DataFrame, metric: str) -> alt.Chart:
+    if metric == "Injuries":
+        grp = (df_in.groupby(['Weather Description', 'Illumination Description'])
+               .agg(total=('Number of Injuries', 'sum'),
+                    accident_cnt=('Weather Description', 'count'))
+               .reset_index())
+        grp['avg_val'] = grp['total'] / grp['accident_cnt']
+        title = 'Average Injuries per Accident'
+        color_title = 'Avg Injuries / Accident'
+        fmt = '.2f'
+    else:
+        grp = (df_in.groupby(['Weather Description', 'Illumination Description'])
+               .agg(total=('Number of Fatalities', 'sum'),
+                    accident_cnt=('Weather Description', 'count'))
+               .reset_index())
+        grp['avg_val'] = grp['total'] / grp['accident_cnt']
+        title = 'Average Fatalities per Accident'
+        color_title = 'Avg Fatalities / Accident'
+        fmt = '.3f'
 
-inj_heat = (
-    alt.Chart(inj_grp)
-    .mark_rect()
-    .encode(
-        x=alt.X('Illumination Description:N', title='Lighting Condition'),
-        y=alt.Y('Weather Description:N',      title='Weather Condition'),
-        color=alt.Color('avg_injuries:Q',
-                        scale=alt.Scale(scheme='reds'),
-                        title='Avg Injuries / Accident'),
-        tooltip=['Weather Description', 'Illumination Description',
-                 alt.Tooltip('avg_injuries:Q', format='.2f')]
+    return (
+        alt.Chart(grp)
+        .mark_rect()
+        .encode(
+            x=alt.X('Illumination Description:N', title='Lighting Condition'),
+            y=alt.Y('Weather Description:N',      title='Weather Condition'),
+            color=alt.Color('avg_val:Q',
+                            scale=alt.Scale(scheme='reds'),
+                            title=color_title),
+            tooltip=['Weather Description', 'Illumination Description',
+                     alt.Tooltip('avg_val:Q', format=fmt)]
+        )
+        .properties(title=title,
+                    width=800, height=420)
     )
-    .properties(title='Average Injuries per Accident',
-                width=600, height=380)
-)
+
+heatmap_chart = build_heatmap(filtered_df, metric_choice)
 
 #-------------------------------------------------------------------------------------------------#
-# Heat-map 2: Average Fatalities / Accident
+# Display single Heat-map
 #-------------------------------------------------------------------------------------------------#
-fat_grp = (
-    filtered_df.groupby(['Weather Description', 'Illumination Description'])
-    .agg(total_fatalities=('Number of Fatalities', 'sum'),
-         accident_count   =('Weather Description', 'count'))
-    .reset_index()
-)
-fat_grp['avg_fatalities'] = fat_grp['total_fatalities'] / fat_grp['accident_count']
-
-fat_heat = (
-    alt.Chart(fat_grp)
-    .mark_rect()
-    .encode(
-        x=alt.X('Illumination Description:N', title='Lighting Condition'),
-        y=alt.Y('Weather Description:N',      title='Weather Condition'),
-        color=alt.Color('avg_fatalities:Q',
-                        scale=alt.Scale(scheme='reds'),
-                        title='Avg Fatalities / Accident'),
-        tooltip=['Weather Description', 'Illumination Description',
-                 alt.Tooltip('avg_fatalities:Q', format='.3f')]
-    )
-    .properties(title='Average Fatalities per Accident',
-                width=600, height=380)
-)
-
-#-------------------------------------------------------------------------------------------------#
-# Display Heat-maps side-by-side (full-width columns)
-#-------------------------------------------------------------------------------------------------#
-hcol1, hcol2 = st.columns(2, gap="large")
-with hcol1:
-    st.altair_chart(inj_heat, use_container_width=True)
-with hcol2:
-    st.altair_chart(fat_heat, use_container_width=True)
+st.altair_chart(heatmap_chart, use_container_width=True)
