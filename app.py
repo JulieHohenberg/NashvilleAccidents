@@ -7,7 +7,7 @@ import altair as alt
 import pydeck as pdk
 
 #-------------------------------------------------------------------------------------------------#
-# Load data (no widgets inside cached functions)
+# Load CSV  (widget-free inside @st.cache_data)
 #-------------------------------------------------------------------------------------------------#
 DATA_PATH = "data/nashville_accidents.csv"
 
@@ -23,10 +23,10 @@ if os.path.exists(DATA_PATH):
     df = read_csv_file(DATA_PATH)
 else:
     st.warning("`nashville_accidents.csv` not found – please upload it.")
-    uploaded_file = st.file_uploader("**Upload CSV**", type="csv")
-    if uploaded_file is None:
+    up = st.file_uploader("📂 **Upload CSV**", type="csv")
+    if up is None:
         st.stop()
-    df = read_uploaded_file(uploaded_file)
+    df = read_uploaded_file(up)
 
 #-------------------------------------------------------------------------------------------------#
 # DateTime Conversions
@@ -42,7 +42,7 @@ df['is_weekend']   = df['day_of_week'].isin([5, 6])
 df['is_night']     = (df['hour'] >= 20) | (df['hour'] < 6)       # 8 PM–5:59 AM
 
 #-------------------------------------------------------------------------------------------------#
-# NaN Handling
+# NaN Handling & Remove “OTHER/UNKNOWN”
 #-------------------------------------------------------------------------------------------------#
 cols_drop_na = ['x', 'y', 'Long', 'Lat', 'Number of Fatalities', 'Number of Injuries',
                 'City', 'State', 'Number of Motor Vehicles', 'Hit and Run',
@@ -54,9 +54,6 @@ cols_na_unknown = ['Weather Description', 'Reporting Officer', 'HarmfulDescripti
 df[cols_na_unknown] = df[cols_na_unknown].fillna('UNKNOWN')
 df['Weather Description'] = df['Weather Description'].replace('OTHER (NARRATIVE)', 'UNKNOWN')
 
-#-------------------------------------------------------------------------------------------------#
-# REMOVE "OTHER" & "UNKNOWN" FROM BOTH DIMENSIONS
-#-------------------------------------------------------------------------------------------------#
 exclude = ['OTHER', 'UNKNOWN']
 df = df[
     ~df['Weather Description'].isin(exclude) &
@@ -64,7 +61,7 @@ df = df[
 ]
 
 #-------------------------------------------------------------------------------------------------#
-# ‘Proportion of Accidents with Injuries or Fatalities’ (unfiltered)
+# “Proportion of Accidents with Injuries or Fatalities”  (all categories)
 #-------------------------------------------------------------------------------------------------#
 df['has_injury']   = df['Number of Injuries']   > 0
 df['has_fatality'] = df['Number of Fatalities'] > 0
@@ -106,69 +103,43 @@ bar_chart = (
 st.altair_chart(bar_chart, use_container_width=True)
 
 #-------------------------------------------------------------------------------------------------#
-# Filters for Heat-map & Metric selector (lists already exclude OTHER/UNKNOWN)
+# Metric selector (single dropdown) — Injuries or Fatalities
 #-------------------------------------------------------------------------------------------------#
-weather_opts = sorted(df['Weather Description'].unique())
-illum_opts   = sorted(df['Illumination Description'].unique())
-
-st.markdown("###Select Heat-map Parameters")
-fcol1, fcol2, fcol3 = st.columns([3,3,2], gap="medium")
-with fcol1:
-    sel_weather = st.multiselect("Weather Condition(s)",
-                                 weather_opts,
-                                 default=weather_opts)
-with fcol2:
-    sel_illum = st.multiselect("Lighting Condition(s)",
-                               illum_opts,
-                               default=illum_opts)
-with fcol3:
-    metric_choice = st.selectbox("Metric",
-                                 ["Injuries", "Fatalities"], index=0)
-
-filtered_df = df[
-    df['Weather Description'].isin(sel_weather) &
-    df['Illumination Description'].isin(sel_illum)
-]
+metric_choice = st.selectbox("Heat-map Metric  📊", ["Injuries", "Fatalities"], index=0)
 
 #-------------------------------------------------------------------------------------------------#
-# Heat-map builder (fills missing combos with zeros)
+# Build Heat-map restricted to TOP-8 Weather × TOP-6 Illumination
 #-------------------------------------------------------------------------------------------------#
-def build_heatmap(df_in: pd.DataFrame,
-                  metric: str,
-                  weather_list: list,
-                  illum_list: list) -> alt.Chart:
+def build_top_heatmap(df_in: pd.DataFrame, metric: str) -> alt.Chart:
+    # pick top categories -------------------------------------------------
+    top_weather = df_in['Weather Description'].value_counts().nlargest(8).index
+    top_illum   = df_in['Illumination Description'].value_counts().nlargest(6).index
+    df_sub = df_in[
+        df_in['Weather Description'].isin(top_weather) &
+        df_in['Illumination Description'].isin(top_illum)
+    ]
+
     if metric == "Injuries":
-        grp = (df_in.groupby(['Weather Description', 'Illumination Description'])
-               .agg(total=('Number of Injuries', 'sum'),
-                    accident_cnt=('Weather Description', 'count'))
-               .reset_index())
-        title = 'Average Injuries per Accident'
+        grouped = (df_sub.groupby(['Weather Description', 'Illumination Description'])
+                   .agg(total=('Number of Injuries', 'sum'),
+                        accident_count=('Weather Description', 'count'))
+                   .reset_index())
+        grouped['avg_val'] = grouped['total'] / grouped['accident_count']
+        title_txt   = 'Average Injuries per Accident'
         color_title = 'Avg Injuries / Accident'
         fmt = '.2f'
     else:
-        grp = (df_in.groupby(['Weather Description', 'Illumination Description'])
-               .agg(total=('Number of Fatalities', 'sum'),
-                    accident_cnt=('Weather Description', 'count'))
-               .reset_index())
-        title = 'Average Fatalities per Accident'
+        grouped = (df_sub.groupby(['Weather Description', 'Illumination Description'])
+                   .agg(total=('Number of Fatalities', 'sum'),
+                        accident_count=('Weather Description', 'count'))
+                   .reset_index())
+        grouped['avg_val'] = grouped['total'] / grouped['accident_count']
+        title_txt   = 'Average Fatalities per Accident'
         color_title = 'Avg Fatalities / Accident'
         fmt = '.3f'
 
-    # complete grid to avoid blanks (OTHER/UNKNOWN already gone)
-    full_idx = pd.MultiIndex.from_product(
-        [weather_list, illum_list],
-        names=['Weather Description', 'Illumination Description']
-    )
-    grp = (grp.set_index(['Weather Description', 'Illumination Description'])
-              .reindex(full_idx, fill_value=0)
-              .reset_index())
-
-    grp['avg_val'] = np.where(grp['accident_cnt'] > 0,
-                              grp['total'] / grp['accident_cnt'],
-                              0)
-
     return (
-        alt.Chart(grp)
+        alt.Chart(grouped)
         .mark_rect()
         .encode(
             x=alt.X('Illumination Description:N', title='Lighting Condition'),
@@ -179,16 +150,13 @@ def build_heatmap(df_in: pd.DataFrame,
             tooltip=['Weather Description', 'Illumination Description',
                      alt.Tooltip('avg_val:Q', format=fmt)]
         )
-        .properties(title=title,
+        .properties(title=title_txt,
                     width=800, height=420)
     )
 
-heatmap_chart = build_heatmap(filtered_df,
-                              metric_choice,
-                              sel_weather,
-                              sel_illum)
+heatmap_chart = build_top_heatmap(df, metric_choice)
 
 #-------------------------------------------------------------------------------------------------#
-# Display single Heat-map
+# Display Heat-map
 #-------------------------------------------------------------------------------------------------#
 st.altair_chart(heatmap_chart, use_container_width=True)
