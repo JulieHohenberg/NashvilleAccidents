@@ -6,43 +6,50 @@ import altair as alt
 import pydeck as pdk
 
 #-------------------------------------------------------------------------------------------------#
-# Load data
+# Load data (no widgets inside cached functions)
 #-------------------------------------------------------------------------------------------------#
 DATA_PATH = "data/nashville_accidents.csv"
-@st.cache_data
-def load_data(path: str) -> pd.DataFrame:
-    if os.path.exists(path):
-        return pd.read_csv(path)
-    uploaded = st.file_uploader("Upload nashville_accidents.csv", type="csv")
-    if uploaded is not None:
-        return pd.read_csv(uploaded)
-    st.stop()
 
-df = load_data(DATA_PATH)
+@st.cache_data
+def read_csv_file(path: str) -> pd.DataFrame:
+    return pd.read_csv(path)
+
+@st.cache_data
+def read_uploaded_file(uploaded) -> pd.DataFrame:
+    return pd.read_csv(uploaded)
+
+if os.path.exists(DATA_PATH):
+    df = read_csv_file(DATA_PATH)
+else:
+    st.warning("`nashville_accidents.csv` not found – please upload it.")
+    uploaded_file = st.file_uploader("📂 **Upload CSV**", type="csv")
+    if uploaded_file is None:
+        st.stop()
+    df = read_uploaded_file(uploaded_file)
 
 #-------------------------------------------------------------------------------------------------#
 # DateTime Conversions
 #-------------------------------------------------------------------------------------------------#
 df['Date and Time'] = pd.to_datetime(df['Date and Time'], format='%m/%d/%Y %I:%M:%S %p')
-df['year'] = df['Date and Time'].dt.year
-df['month'] = df['Date and Time'].dt.month
-df['day'] = df['Date and Time'].dt.day
-df['hour'] = df['Date and Time'].dt.hour
-df['day_of_week'] = df['Date and Time'].dt.dayofweek  # Monday=0, Sunday=6
-df['is_weekend'] = df['day_of_week'].isin([5, 6])
-df['is_night'] = (df['hour'] >= 20) | (df['hour'] < 6) # Night is between 8PM and 5:59AM inclusive
+df['year']         = df['Date and Time'].dt.year
+df['month']        = df['Date and Time'].dt.month
+df['day']          = df['Date and Time'].dt.day
+df['hour']         = df['Date and Time'].dt.hour
+df['day_of_week']  = df['Date and Time'].dt.dayofweek            # Monday=0 … Sunday=6
+df['is_weekend']   = df['day_of_week'].isin([5, 6])
+df['is_night']     = (df['hour'] >= 20) | (df['hour'] < 6)       # 8 PM–5:59 AM
 
 #-------------------------------------------------------------------------------------------------#
 # NaN Handling
 #-------------------------------------------------------------------------------------------------#
 cols_drop_na = ['x', 'y', 'Long', 'Lat', 'Number of Fatalities', 'Number of Injuries',
-           'City', 'State', 'Number of Motor Vehicles', 'Hit and Run',
-           'Precinct', 'Zip Code', 'Street Address']
+                'City', 'State', 'Number of Motor Vehicles', 'Hit and Run',
+                'Precinct', 'Zip Code', 'Street Address']
 df.dropna(subset=cols_drop_na, inplace=True)
 
-cols_na_unknwon = ['Weather Description', 'Reporting Officer', 'HarmfulDescriptions',
+cols_na_unknown = ['Weather Description', 'Reporting Officer', 'HarmfulDescriptions',
                    'Illumination Description', 'Collision Type Description']
-df[cols_na_unknwon] = df[cols_na_unknwon].fillna('UNKNOWN')
+df[cols_na_unknown] = df[cols_na_unknown].fillna('UNKNOWN')
 df['Weather Description'] = df['Weather Description'].replace('OTHER (NARRATIVE)', 'UNKNOWN')
 
 #-------------------------------------------------------------------------------------------------#
@@ -85,26 +92,26 @@ bar_chart = (
                  alt.Tooltip('Percentage:Q', format='.1f')]
     )
     .properties(title='Proportion of Accidents with Injuries or Fatalities',
-                height=400)
+                height=420)
     .configure_axisX(labelAngle=-35)
 )
 
 st.altair_chart(bar_chart, use_container_width=True)
 
 #-------------------------------------------------------------------------------------------------#
-# Filters for Heat-maps only (Weather + Lighting)
+# Filters for Heat-maps only (Weather + Lighting) – shown directly above the two charts
 #-------------------------------------------------------------------------------------------------#
 weather_opts = sorted(df['Weather Description'].unique())
 illum_opts   = sorted(df['Illumination Description'].unique())
 
-st.markdown("### 🔎 Filter Heat-maps")
+st.markdown("### 🎛️ Select Weather & Lighting for Heat-maps")
 fcol1, fcol2 = st.columns(2, gap="medium")
 with fcol1:
-    sel_weather = st.multiselect("Weather Condition(s) ☁️🌧️",
+    sel_weather = st.multiselect("Weather Condition(s)  ☁️🌧️",
                                  weather_opts,
                                  default=weather_opts)
 with fcol2:
-    sel_illum = st.multiselect("Lighting Condition(s) 💡🌙",
+    sel_illum = st.multiselect("Lighting Condition(s)  💡🌙",
                                illum_opts,
                                default=illum_opts)
 
@@ -136,7 +143,8 @@ inj_heat = (
         tooltip=['Weather Description', 'Illumination Description',
                  alt.Tooltip('avg_injuries:Q', format='.2f')]
     )
-    .properties(title='Average Injuries per Accident', height=350)
+    .properties(title='Average Injuries per Accident',
+                width=600, height=380)
 )
 
 #-------------------------------------------------------------------------------------------------#
@@ -162,11 +170,12 @@ fat_heat = (
         tooltip=['Weather Description', 'Illumination Description',
                  alt.Tooltip('avg_fatalities:Q', format='.3f')]
     )
-    .properties(title='Average Fatalities per Accident', height=350)
+    .properties(title='Average Fatalities per Accident',
+                width=600, height=380)
 )
 
 #-------------------------------------------------------------------------------------------------#
-# Display Heat-maps side-by-side (full width)
+# Display Heat-maps side-by-side (full-width columns)
 #-------------------------------------------------------------------------------------------------#
 hcol1, hcol2 = st.columns(2, gap="large")
 with hcol1:
