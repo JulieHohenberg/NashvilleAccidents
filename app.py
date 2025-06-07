@@ -5,10 +5,26 @@ import pandas as pd
 import altair as alt
 import pydeck as pdk
 
+#-------------------------------------------------------------------------------------------------#
 # Load data
-df = pd.read_csv("data/nashville_accidents.csv")
+#-------------------------------------------------------------------------------------------------#
+DATA_PATH = "data/nashville_accidents.csv"
+@st.cache_data
+def load_data(path: str) -> pd.DataFrame:
+    if os.path.exists(path):
+        return pd.read_csv(path)
+    else:
+        st.warning(f"File not found at `{path}` – please upload the CSV.")
+        uploaded = st.file_uploader("Upload nashville_accidents.csv", type="csv")
+        if uploaded is not None:
+            return pd.read_csv(uploaded)
+        st.stop()
 
+df = load_data(DATA_PATH)
+
+#-------------------------------------------------------------------------------------------------#
 # DateTime Conversions
+#-------------------------------------------------------------------------------------------------#
 df['Date and Time'] = pd.to_datetime(df['Date and Time'], format='%m/%d/%Y %I:%M:%S %p')
 df['year'] = df['Date and Time'].dt.year
 df['month'] = df['Date and Time'].dt.month
@@ -18,7 +34,9 @@ df['day_of_week'] = df['Date and Time'].dt.dayofweek  # Monday=0, Sunday=6
 df['is_weekend'] = df['day_of_week'].isin([5, 6])
 df['is_night'] = (df['hour'] >= 20) | (df['hour'] < 6) # Night is between 8PM and 5:59AM inclusive
 
-# NaN
+#-------------------------------------------------------------------------------------------------#
+# NaN Handling
+#-------------------------------------------------------------------------------------------------#
 cols_drop_na = ['x', 'y', 'Long', 'Lat', 'Number of Fatalities', 'Number of Injuries',
            'City', 'State', 'Number of Motor Vehicles', 'Hit and Run',
            'Precinct', 'Zip Code', 'Street Address']
@@ -28,7 +46,9 @@ cols_na_unknwon = ['Weather Description', 'Reporting Officer', 'HarmfulDescripti
 df[cols_na_unknwon] = df[cols_na_unknwon].fillna('UNKNOWN')
 df['Weather Description'] = df['Weather Description'].replace('OTHER (NARRATIVE)', 'UNKNOWN')
 
-# filters
+#-------------------------------------------------------------------------------------------------#
+# Filters
+#-------------------------------------------------------------------------------------------------#
 with st.sidebar:
     st.header("Filters")
 
@@ -47,16 +67,17 @@ filtered_df = df[
     df['Weather Description'].isin(sel_weather) &
     df['Illumination Description'].isin(sel_illum)
 ]
+
 #-------------------------------------------------------------------------------------------------#
 # Under which weather conditions are accidents disproportionately more severe than average?
 #-------------------------------------------------------------------------------------------------#
 
 # Create binary columns
-df['has_injury'] = df['Number of Injuries'] > 0
-df['has_fatality'] = df['Number of Fatalities'] > 0
+filtered_df['has_injury'] = filtered_df['Number of Injuries'] > 0
+filtered_df['has_fatality'] = filtered_df['Number of Fatalities'] > 0
 
 # Group by weather condition
-severity_df = df.groupby('Weather Description').agg(
+severity_df = filtered_df.groupby('Weather Description').agg(
     total_accidents=('Weather Description', 'count'),
     injury_accidents=('has_injury', 'sum'),
     fatal_accidents=('has_fatality', 'sum')
@@ -80,7 +101,7 @@ melted = melted[melted['Weather Description'].isin(
 )]
 
 # Plot
-chart = alt.Chart(melted).mark_bar().encode(
+bar_chart = alt.Chart(melted).mark_bar().encode(
     x=alt.X('Weather Description:N', sort='-y', title='Weather Condition'),
     y=alt.Y('Percentage:Q', title='Percentage of Accidents'),
     color=alt.Color('Severity Type:N', title='Severity Type',
@@ -89,7 +110,7 @@ chart = alt.Chart(melted).mark_bar().encode(
             range=['orange', 'crimson']
         )
     ),
-    tooltip=['Weather Description', 'Severity Type', 'Percentage']
+    tooltip=['Weather Description', 'Severity Type', alt.Tooltip('Percentage:Q', format='.1f')]
 ).properties(
     title='Proportion of Accidents with Injuries or Fatalities by Weather Condition',
     width=700,
@@ -97,12 +118,12 @@ chart = alt.Chart(melted).mark_bar().encode(
 ).configure_axisX(labelAngle=-40)
 
 # Display in Streamlit
-st.altair_chart(chart, use_container_width=True)
-
+st.altair_chart(bar_chart, use_container_width=True)
 
 #-------------------------------------------------------------------------------------------------#
 # How does weather impact the frequency and severity of accidents?
 #-------------------------------------------------------------------------------------------------#
+
 # chart 1: injuries
 inj_grp = (
     filtered_df.groupby(['Weather Description', 'Illumination Description'])
@@ -152,6 +173,7 @@ fat_heat = (
     .properties(title='Average Fatalities per Accident',
                 width=400, height=300)
 )
+
 # display injuries/fatalities together
 st.altair_chart(bar_chart, use_container_width=True)
 
