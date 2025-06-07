@@ -2,6 +2,7 @@ from vega_datasets import data
 import os
 import streamlit as st
 import pandas as pd
+import numpy as np
 import altair as alt
 import pydeck as pdk
 
@@ -125,15 +126,18 @@ filtered_df = df[
 ]
 
 #-------------------------------------------------------------------------------------------------#
-# Heat-map builder
+# Heat-map builder (fills missing combos with zeros so no blank tiles)
 #-------------------------------------------------------------------------------------------------#
-def build_heatmap(df_in: pd.DataFrame, metric: str) -> alt.Chart:
+def build_heatmap(df_in: pd.DataFrame,
+                  metric: str,
+                  weather_list: list,
+                  illum_list: list) -> alt.Chart:
+    # base aggregation ----------------------------------------------------
     if metric == "Injuries":
         grp = (df_in.groupby(['Weather Description', 'Illumination Description'])
                .agg(total=('Number of Injuries', 'sum'),
                     accident_cnt=('Weather Description', 'count'))
                .reset_index())
-        grp['avg_val'] = grp['total'] / grp['accident_cnt']
         title = 'Average Injuries per Accident'
         color_title = 'Avg Injuries / Accident'
         fmt = '.2f'
@@ -142,11 +146,25 @@ def build_heatmap(df_in: pd.DataFrame, metric: str) -> alt.Chart:
                .agg(total=('Number of Fatalities', 'sum'),
                     accident_cnt=('Weather Description', 'count'))
                .reset_index())
-        grp['avg_val'] = grp['total'] / grp['accident_cnt']
         title = 'Average Fatalities per Accident'
         color_title = 'Avg Fatalities / Accident'
         fmt = '.3f'
 
+    # complete grid to avoid blanks --------------------------------------
+    full_idx = pd.MultiIndex.from_product(
+        [weather_list, illum_list],
+        names=['Weather Description', 'Illumination Description']
+    )
+    grp = (grp.set_index(['Weather Description', 'Illumination Description'])
+              .reindex(full_idx, fill_value=0)
+              .reset_index())
+
+    # average per accident (handle div-by-zero) --------------------------
+    grp['avg_val'] = np.where(grp['accident_cnt'] > 0,
+                              grp['total'] / grp['accident_cnt'],
+                              0)
+
+    # plot ---------------------------------------------------------------
     return (
         alt.Chart(grp)
         .mark_rect()
@@ -163,7 +181,10 @@ def build_heatmap(df_in: pd.DataFrame, metric: str) -> alt.Chart:
                     width=800, height=420)
     )
 
-heatmap_chart = build_heatmap(filtered_df, metric_choice)
+heatmap_chart = build_heatmap(filtered_df,
+                              metric_choice,
+                              sel_weather,
+                              sel_illum)
 
 #-------------------------------------------------------------------------------------------------#
 # Display single Heat-map
