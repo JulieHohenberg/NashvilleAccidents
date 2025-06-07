@@ -55,6 +55,15 @@ df[cols_na_unknown] = df[cols_na_unknown].fillna('UNKNOWN')
 df['Weather Description'] = df['Weather Description'].replace('OTHER (NARRATIVE)', 'UNKNOWN')
 
 #-------------------------------------------------------------------------------------------------#
+# REMOVE "OTHER" & "UNKNOWN" FROM BOTH DIMENSIONS
+#-------------------------------------------------------------------------------------------------#
+exclude = ['OTHER', 'UNKNOWN']
+df = df[
+    ~df['Weather Description'].isin(exclude) &
+    ~df['Illumination Description'].isin(exclude)
+]
+
+#-------------------------------------------------------------------------------------------------#
 # ‘Proportion of Accidents with Injuries or Fatalities’ (unfiltered)
 #-------------------------------------------------------------------------------------------------#
 df['has_injury']   = df['Number of Injuries']   > 0
@@ -75,10 +84,6 @@ melted = severity_df.melt(
     var_name  = 'Severity Type',
     value_name= 'Percentage'
 )
-
-melted = melted[melted['Weather Description'].isin(
-    severity_df[severity_df['total_accidents'] >= 5]['Weather Description']
-)]
 
 bar_chart = (
     alt.Chart(melted)
@@ -101,7 +106,7 @@ bar_chart = (
 st.altair_chart(bar_chart, use_container_width=True)
 
 #-------------------------------------------------------------------------------------------------#
-# Filters for Heat-map & Metric selector
+# Filters for Heat-map & Metric selector (lists already exclude OTHER/UNKNOWN)
 #-------------------------------------------------------------------------------------------------#
 weather_opts = sorted(df['Weather Description'].unique())
 illum_opts   = sorted(df['Illumination Description'].unique())
@@ -126,13 +131,12 @@ filtered_df = df[
 ]
 
 #-------------------------------------------------------------------------------------------------#
-# Heat-map builder (fills missing combos with zeros so no blank tiles)
+# Heat-map builder (fills missing combos with zeros)
 #-------------------------------------------------------------------------------------------------#
 def build_heatmap(df_in: pd.DataFrame,
                   metric: str,
                   weather_list: list,
                   illum_list: list) -> alt.Chart:
-    # base aggregation ----------------------------------------------------
     if metric == "Injuries":
         grp = (df_in.groupby(['Weather Description', 'Illumination Description'])
                .agg(total=('Number of Injuries', 'sum'),
@@ -150,7 +154,7 @@ def build_heatmap(df_in: pd.DataFrame,
         color_title = 'Avg Fatalities / Accident'
         fmt = '.3f'
 
-    # complete grid to avoid blanks --------------------------------------
+    # complete grid to avoid blanks (OTHER/UNKNOWN already gone)
     full_idx = pd.MultiIndex.from_product(
         [weather_list, illum_list],
         names=['Weather Description', 'Illumination Description']
@@ -159,12 +163,10 @@ def build_heatmap(df_in: pd.DataFrame,
               .reindex(full_idx, fill_value=0)
               .reset_index())
 
-    # average per accident (handle div-by-zero) --------------------------
     grp['avg_val'] = np.where(grp['accident_cnt'] > 0,
                               grp['total'] / grp['accident_cnt'],
                               0)
 
-    # plot ---------------------------------------------------------------
     return (
         alt.Chart(grp)
         .mark_rect()
