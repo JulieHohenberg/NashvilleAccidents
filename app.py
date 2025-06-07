@@ -39,7 +39,7 @@ df['day']          = df['Date and Time'].dt.day
 df['hour']         = df['Date and Time'].dt.hour
 df['day_of_week']  = df['Date and Time'].dt.dayofweek            # Monday=0 … Sunday=6
 df['is_weekend']   = df['day_of_week'].isin([5, 6])
-df['is_night']     = (df['hour'] >= 20) | (df['hour'] < 6)       # 8 PM–5:59 AM
+df['is_night']     = (df['hour'] >= 20) | (df['hour'] < 6)       # 8 PM–5 : 59 AM
 
 #-------------------------------------------------------------------------------------------------#
 # NaN Handling & Remove “OTHER/UNKNOWN”
@@ -61,7 +61,7 @@ df = df[
 ]
 
 #-------------------------------------------------------------------------------------------------#
-# “Proportion of Accidents with Injuries or Fatalities” (all categories)
+# “Proportion of Accidents with Injuries or Fatalities”  (all categories)
 #-------------------------------------------------------------------------------------------------#
 df['has_injury']   = df['Number of Injuries']   > 0
 df['has_fatality'] = df['Number of Fatalities'] > 0
@@ -82,45 +82,77 @@ sev_melt = sev_df.melt(
     value_name= 'Percentage'
 )
 
-bar_chart = (
+# Bar layer ---------------------------------------------------------------
+bar = (
     alt.Chart(sev_melt)
     .mark_bar()
     .encode(
-        x=alt.X('Weather Description:N', sort='-y', title='Weather Condition'),
-        y=alt.Y('Percentage:Q',          title='Percentage of Accidents'),
+        x=alt.X('Weather Description:N', sort='-y',
+                title='Weather Condition'),
+        y=alt.Y('Percentage:Q', title='Percentage of Accidents'),
         color=alt.Color('Severity Type:N',
-                        scale=alt.Scale(domain=['% with Injury', '% with Fatality'],
+                        scale=alt.Scale(domain=['% with Injury',
+                                                '% with Fatality'],
                                         range=['orange', 'crimson']),
                         title='Severity Type'),
         tooltip=['Weather Description', 'Severity Type',
                  alt.Tooltip('Percentage:Q', format='.1f')]
     )
-    .properties(title='Proportion of Accidents with Injuries or Fatalities',
-                height=420)
-    .configure_axisX(labelAngle=-35)
+)
+
+# Text labels layer -------------------------------------------------------
+text = (
+    alt.Chart(sev_melt)
+    .mark_text(size=11, dy=-5, color='black')
+    .encode(
+        x=alt.X('Weather Description:N', sort='-y'),
+        y=alt.Y('Percentage:Q'),
+        detail='Severity Type:N',
+        text=alt.Text('Percentage:Q', format='.1f')
+    )
+)
+
+bar_chart = (
+    alt.layer(bar, text)
+       .properties(title='Proportion of Accidents with Injuries or Fatalities',
+                   height=420)
+       .configure_axisX(labelAngle=-35)
 )
 
 st.altair_chart(bar_chart, use_container_width=True)
 
 #-------------------------------------------------------------------------------------------------#
-# Metric selector (single dropdown) — Injuries or Fatalities
+# 🔍 Heat-map Filters (apply to chart below)
 #-------------------------------------------------------------------------------------------------#
-metric_choice = st.selectbox("Heat-map Metric  📊",
-                             ["Injuries", "Fatalities"], index=0)
+top_weather = df['Weather Description'].value_counts().nlargest(8).index
+top_illum   = df['Illumination Description'].value_counts().nlargest(6).index
+
+st.markdown("### 🔍 Heat-map Filters")
+f1, f2, f3 = st.columns([3, 3, 2], gap="medium")
+with f1:
+    weather_sel = st.multiselect("Weather Condition(s) ☁️🌧️",
+                                 list(top_weather),
+                                 default=list(top_weather))
+with f2:
+    illum_sel = st.multiselect("Lighting Condition(s) 💡🌙",
+                               list(top_illum),
+                               default=list(top_illum))
+with f3:
+    metric_choice = st.selectbox("Metric 📊", ["Injuries", "Fatalities"], index=0)
 
 #-------------------------------------------------------------------------------------------------#
-# Build Heat-map with TOP-8 Weather × TOP-6 Lighting and **full grid** (no blank tiles)
+# Build Heat-map
 #-------------------------------------------------------------------------------------------------#
-def build_top_heatmap(df_in: pd.DataFrame, metric: str) -> alt.Chart:
-    # Top categories ------------------------------------------------------
-    top_weather = df_in['Weather Description'].value_counts().nlargest(8).index
-    top_illum   = df_in['Illumination Description'].value_counts().nlargest(6).index
+def build_heatmap(df_in: pd.DataFrame,
+                  metric: str,
+                  w_list: list,
+                  i_list: list) -> alt.Chart:
+
     df_sub = df_in[
-        df_in['Weather Description'].isin(top_weather) &
-        df_in['Illumination Description'].isin(top_illum)
+        df_in['Weather Description'].isin(w_list) &
+        df_in['Illumination Description'].isin(i_list)
     ]
 
-    # Aggregate -----------------------------------------------------------
     if metric == "Injuries":
         grp = (df_sub.groupby(['Weather Description', 'Illumination Description'])
                .agg(total=('Number of Injuries', 'sum'),
@@ -138,9 +170,9 @@ def build_top_heatmap(df_in: pd.DataFrame, metric: str) -> alt.Chart:
         color_title = 'Avg Fatalities / Accident'
         fmt = '.3f'
 
-    # Complete grid so *every* combo has a tile --------------------------
+    # complete grid, no blanks ------------------------------------------
     full_idx = pd.MultiIndex.from_product(
-        [top_weather, top_illum],
+        [w_list, i_list],
         names=['Weather Description', 'Illumination Description']
     )
     grp = (grp.set_index(['Weather Description', 'Illumination Description'])
@@ -151,17 +183,17 @@ def build_top_heatmap(df_in: pd.DataFrame, metric: str) -> alt.Chart:
                               grp['total'] / grp['accident_cnt'],
                               0)
 
-    # Consistent colour scale --------------------------------------------
     max_val = grp['avg_val'].max()
     color_scale = alt.Scale(scheme='reds', domain=[0, max_val])
 
-    # Plot ---------------------------------------------------------------
     return (
         alt.Chart(grp)
         .mark_rect()
         .encode(
-            x=alt.X('Illumination Description:N', title='Lighting Condition'),
-            y=alt.Y('Weather Description:N',      title='Weather Condition'),
+            x=alt.X('Illumination Description:N',
+                    title='Lighting Condition'),
+            y=alt.Y('Weather Description:N',
+                    title='Weather Condition'),
             color=alt.Color('avg_val:Q',
                             scale=color_scale,
                             title=color_title),
@@ -169,13 +201,10 @@ def build_top_heatmap(df_in: pd.DataFrame, metric: str) -> alt.Chart:
                      'Illumination Description',
                      alt.Tooltip('avg_val:Q', format=fmt)]
         )
-        .properties(title=title_txt,
-                    width=800, height=420)
+        .properties(title=title_txt, width=800, height=420)
     )
 
-heatmap_chart = build_top_heatmap(df, metric_choice)
+heatmap_chart = build_heatmap(df, metric_choice,
+                              weather_sel, illum_sel)
 
-#-------------------------------------------------------------------------------------------------#
-# Display Heat-map
-#-------------------------------------------------------------------------------------------------#
 st.altair_chart(heatmap_chart, use_container_width=True)
