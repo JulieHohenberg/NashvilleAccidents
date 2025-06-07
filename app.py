@@ -28,6 +28,25 @@ cols_na_unknwon = ['Weather Description', 'Reporting Officer', 'HarmfulDescripti
 df[cols_na_unknwon] = df[cols_na_unknwon].fillna('UNKNOWN')
 df['Weather Description'] = df['Weather Description'].replace('OTHER (NARRATIVE)', 'UNKNOWN')
 
+# filters
+with st.sidebar:
+    st.header("Filters")
+
+    weather_opts = sorted(df['Weather Description'].unique())
+    illum_opts   = sorted(df['Illumination Description'].unique())
+
+    sel_weather = st.multiselect("Weather Condition(s)",
+                                 weather_opts,
+                                 default=weather_opts)          # All by default
+    sel_illum   = st.multiselect("Lighting Condition(s)",
+                                 illum_opts,
+                                 default=illum_opts)
+
+# Apply filters -----------------------------------------------------------
+filtered_df = df[
+    df['Weather Description'].isin(sel_weather) &
+    df['Illumination Description'].isin(sel_illum)
+]
 #-------------------------------------------------------------------------------------------------#
 # Under which weather conditions are accidents disproportionately more severe than average?
 #-------------------------------------------------------------------------------------------------#
@@ -84,3 +103,60 @@ st.altair_chart(chart, use_container_width=True)
 #-------------------------------------------------------------------------------------------------#
 # How does weather impact the frequency and severity of accidents?
 #-------------------------------------------------------------------------------------------------#
+# chart 1: injuries
+inj_grp = (
+    filtered_df.groupby(['Weather Description', 'Illumination Description'])
+    .agg(total_injuries=('Number of Injuries', 'sum'),
+         accident_count=('Weather Description', 'count'))
+    .reset_index()
+)
+inj_grp['avg_injuries'] = inj_grp['total_injuries'] / inj_grp['accident_count']
+
+inj_heat = (
+    alt.Chart(inj_grp)
+    .mark_rect()
+    .encode(
+        x=alt.X('Illumination Description:N', title='Lighting Condition'),
+        y=alt.Y('Weather Description:N',      title='Weather Condition'),
+        color=alt.Color('avg_injuries:Q',
+                        scale=alt.Scale(scheme='reds'),
+                        title='Avg Injuries / Accident'),
+        tooltip=['Weather Description', 'Illumination Description',
+                 alt.Tooltip('avg_injuries:Q', format='.2f')]
+    )
+    .properties(title='Average Injuries per Accident',
+                width=400, height=300)
+)
+
+# chart 2: fatalities
+fat_grp = (
+    filtered_df.groupby(['Weather Description', 'Illumination Description'])
+    .agg(total_fatalities=('Number of Fatalities', 'sum'),
+         accident_count   =('Weather Description', 'count'))
+    .reset_index()
+)
+fat_grp['avg_fatalities'] = fat_grp['total_fatalities'] / fat_grp['accident_count']
+
+fat_heat = (
+    alt.Chart(fat_grp)
+    .mark_rect()
+    .encode(
+        x=alt.X('Illumination Description:N', title='Lighting Condition'),
+        y=alt.Y('Weather Description:N',      title='Weather Condition'),
+        color=alt.Color('avg_fatalities:Q',
+                        scale=alt.Scale(scheme='reds'),
+                        title='Avg Fatalities / Accident'),
+        tooltip=['Weather Description', 'Illumination Description',
+                 alt.Tooltip('avg_fatalities:Q', format='.3f')]
+    )
+    .properties(title='Average Fatalities per Accident',
+                width=400, height=300)
+)
+# display injuries/fatalities together
+st.altair_chart(bar_chart, use_container_width=True)
+
+col1, col2 = st.columns(2, gap="large")
+with col1:
+    st.altair_chart(inj_heat, use_container_width=True)
+with col2:
+    st.altair_chart(fat_heat, use_container_width=True)
