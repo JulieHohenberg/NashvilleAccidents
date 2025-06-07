@@ -23,7 +23,7 @@ if os.path.exists(DATA_PATH):
     df = read_csv_file(DATA_PATH)
 else:
     st.warning("`nashville_accidents.csv` not found – please upload it.")
-    uploaded_file = st.file_uploader("📂 **Upload CSV**", type="csv")
+    uploaded_file = st.file_uploader("**Upload CSV**", type="csv")
     if uploaded_file is None:
         st.stop()
     df = read_uploaded_file(uploaded_file)
@@ -111,18 +111,18 @@ st.altair_chart(bar_chart, use_container_width=True)
 weather_opts = sorted(df['Weather Description'].unique())
 illum_opts   = sorted(df['Illumination Description'].unique())
 
-st.markdown("### 🎛️ Select Heat-map Parameters")
+st.markdown("###Select Heat-map Parameters")
 fcol1, fcol2, fcol3 = st.columns([3,3,2], gap="medium")
 with fcol1:
-    sel_weather = st.multiselect("Weather Condition(s)  ☁️🌧️",
+    sel_weather = st.multiselect("Weather Condition(s)",
                                  weather_opts,
                                  default=weather_opts)
 with fcol2:
-    sel_illum = st.multiselect("Lighting Condition(s)  💡🌙",
+    sel_illum = st.multiselect("Lighting Condition(s)",
                                illum_opts,
                                default=illum_opts)
 with fcol3:
-    metric_choice = st.selectbox("Metric  📊",
+    metric_choice = st.selectbox("Metric",
                                  ["Injuries", "Fatalities"], index=0)
 
 filtered_df = df[
