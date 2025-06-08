@@ -115,15 +115,15 @@ top_illum   = df['Illumination Description'].value_counts().nlargest(6).index
 st.markdown("### 🔍 Heat-map Filters")
 f1, f2, f3 = st.columns([3, 3, 2], gap="medium")
 with f1:
-    weather_sel = st.multiselect("Weather Condition(s) ☁️🌧️",
+    weather_sel = st.multiselect("Weather Condition(s)",
                                  list(top_weather),
                                  default=list(top_weather))
 with f2:
-    illum_sel = st.multiselect("Lighting Condition(s) 💡🌙",
+    illum_sel = st.multiselect("Lighting Condition(s)",
                                list(top_illum),
                                default=list(top_illum))
 with f3:
-    metric_choice = st.selectbox("Metric 📊",
+    metric_choice = st.selectbox("Metric",
                                  ["Injuries", "Fatalities"], index=0)
 
 #-------------------------------------------------------------------------------------------------#
