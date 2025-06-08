@@ -63,7 +63,7 @@ df = df[
 #-------------------------------------------------------------------------------------------------#
 # 🔍 Global filters (affect Bar + Heat-map)
 #-------------------------------------------------------------------------------------------------#
-st.markdown("### 🔍 Filters (apply to all charts below)")
+st.markdown("### Filters (apply to all charts below)")
 
 top_weather = df['Weather Description'].value_counts().nlargest(8).index
 top_illum   = df['Illumination Description'].value_counts().nlargest(6).index
@@ -80,12 +80,6 @@ with f2:
 with f3:
     metric_choice = st.selectbox("Metric",
                                  ["Injuries", "Fatalities"], index=0)
-
-# filter once and reuse --------------------------------------------------
-df_filt = df[
-    df['Weather Description'].isin(weather_sel) &
-    df['Illumination Description'].isin(illum_sel)
-]
 
 #-------------------------------------------------------------------------------------------------#
 # Bar chart (filtered)
