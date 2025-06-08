@@ -87,7 +87,7 @@ st.altair_chart(bar_chart, use_container_width=True)
 #-------------------------------------------------------------------------------------------------#
 # Metric selector (only affects heat-map)
 #-------------------------------------------------------------------------------------------------#
-st.markdown("### Metric (applies to heat-map)")
+st.markdown("### Weather & Illumination Conditions")
 metric_choice = st.selectbox("Select metric", ["Injuries", "Fatalities"], index=0)
 
 #-------------------------------------------------------------------------------------------------#
