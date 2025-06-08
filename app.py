@@ -107,7 +107,7 @@ bar_chart = (
 st.altair_chart(bar_chart, use_container_width=True)
 
 #-------------------------------------------------------------------------------------------------#
-# 🔍 Heat-map Filters (apply to chart below)
+# Heat-map Filters (apply to chart below)
 #-------------------------------------------------------------------------------------------------#
 top_weather = df['Weather Description'].value_counts().nlargest(8).index
 top_illum   = df['Illumination Description'].value_counts().nlargest(6).index
