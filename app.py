@@ -60,6 +60,8 @@ df = df[
     ~df['Illumination Description'].isin(exclude)
 ]
 
+df['has_injury']   = df['Number of Injuries'] > 0
+df['has_fatality'] = df['Number of Fatalities'] > 0
 #-------------------------------------------------------------------------------------------------#
 # 🔍 Global filters (affect Bar + Heat-map)
 #-------------------------------------------------------------------------------------------------#
