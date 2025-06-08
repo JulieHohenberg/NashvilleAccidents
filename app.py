@@ -112,7 +112,7 @@ st.altair_chart(bar_chart, use_container_width=True)
 top_weather = df['Weather Description'].value_counts().nlargest(8).index
 top_illum   = df['Illumination Description'].value_counts().nlargest(6).index
 
-st.markdown("### 🔍 Heat-map Filters")
+st.markdown("### Accident Severity by Weather Condition")
 f1, f2, f3 = st.columns([3, 3, 2], gap="medium")
 with f1:
     weather_sel = st.multiselect("Weather Condition(s)",
