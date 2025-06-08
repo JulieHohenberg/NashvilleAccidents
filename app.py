@@ -63,6 +63,13 @@ df = df[
 #-------------------------------------------------------------------------------------------------#
 # “Proportion of Accidents with Injuries or Fatalities”  (all categories)
 #-------------------------------------------------------------------------------------------------#
+
+st.markdown("### How does weather affect accident frequency and severity?")
+
+#-------------------------------------------------------------------------------------------------#
+# “Proportion of Accidents with Injuries or Fatalities”  (all categories)
+#-------------------------------------------------------------------------------------------------#
+
 df['has_injury']   = df['Number of Injuries']   > 0
 df['has_fatality'] = df['Number of Fatalities'] > 0
 
@@ -112,7 +119,6 @@ st.altair_chart(bar_chart, use_container_width=True)
 top_weather = df['Weather Description'].value_counts().nlargest(8).index
 top_illum   = df['Illumination Description'].value_counts().nlargest(6).index
 
-st.markdown("### Accident Severity by Weather Condition")
 f1, f2, f3 = st.columns([3, 3, 2], gap="medium")
 with f1:
     weather_sel = st.multiselect("Weather Condition(s)",
