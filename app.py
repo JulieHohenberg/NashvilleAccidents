@@ -88,7 +88,8 @@ bar_chart = (
       .encode(
           x=alt.X('Weather Description:N',
                   sort='-y',
-                  title='Weather Condition'),
+                  title='Weather Condition',
+                  axis=alt.Axis(labelAngle=-35, labelOverlap=False)),
           y=alt.Y('Percentage:Q',
                   title='Percentage of Accidents'),
           color=alt.Color('Severity Type:N',
