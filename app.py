@@ -264,7 +264,19 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
 ########################################################################################
 # Time/Day Heatmap and Map
 ########################################################################################
+st.markdown(
+    """
+    <div style='display: flex; align-items: center;'>
+        <div style='font-size: 80px; margin-right: 20px;'>🕛</div>
+        <div style='font-size: 24px;'> <b>
+            How do time and day affect accident frequency?
+        </b></div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 with st.expander("Click to explore temporal & spatial patterns", expanded=False):
+    st.markdown("Click a cell on the first chart to see distribution of time and day on the map.")
 
     # 1 ── prepare labels
     day_map  = {0:'Monday',1:'Tuesday',2:'Wednesday',3:'Thursday',
