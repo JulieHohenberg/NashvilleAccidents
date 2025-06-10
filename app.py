@@ -179,6 +179,22 @@ st.markdown(
 #-------------------------------------------------------------------------------------------------#
 # Heat-map  (filtered by Weather + Lighting + Metric)
 #-------------------------------------------------------------------------------------------------#
+#-------------------------------------------------------------------------------------------------#
+# Lighting-and-Weather section ─ big emoji header (kept outside the dropdown)
+#-------------------------------------------------------------------------------------------------#
+st.markdown(
+    """
+    <div style='display: flex; align-items: center;'>
+        <div style='font-size: 80px; margin-right: 20px;'>𓍙</div>
+        <div style='font-size: 24px;'><b>
+            How does lighting, in combination with weather, affect accident severity?
+        </b></div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+#======================== 2️⃣ WEATHER × LIGHTING ANALYSIS (HEATMAP) ============================#
 with st.expander("Click to explore lighting & weather interaction", expanded=False):
 
     # Re-select weather (needed for this analysis)
@@ -268,145 +284,3 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
     df_weather_heat = df[df['Weather Description'].isin(weather_sel_heat)]
     heatmap = build_heat(df_weather_heat, metric_choice, weather_sel_heat, illum_sel)
     st.altair_chart(heatmap, use_container_width=True)
-
-#-------------------------------------------------------------------------------------------------#
-# Time-of-day section ─ big emoji header (kept outside the dropdown)
-#-------------------------------------------------------------------------------------------------#
-st.markdown(
-    """
-    <div style='display: flex; align-items: center;'>
-        <div style='font-size: 80px; margin-right: 20px;'>🕒</div>
-        <div style='font-size: 24px;'><b>
-            How do time and day affect accident frequency and severity?
-        </b></div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-#======================== 3️⃣ TIME  ×  LOCATION  ANALYSIS (COORDINATED) =========================#
-with st.expander("Click to explore temporal & spatial patterns", expanded=False):
-
-    # ── 1.  Prep day / hour labels ──────────────────────────────────────────────────────────── #
-    day_mapping = {
-        0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday',
-        4: 'Friday', 5: 'Saturday', 6: 'Sunday'
-    }
-    hour_mapping = {
-        h: pd.to_datetime(f"{h}:00", format="%H:%M").strftime("%-I %p") for h in range(24)
-    }
-
-    df['day_name']   = df['day_of_week'].map(day_mapping)
-    df['hour_label'] = df['hour'].map(hour_mapping)
-    df['day_sort']   = df['day_of_week']
-    df['hour_sort']  = df['hour']
-
-    # ── 2.  Build day-hour accident frequency table ─────────────────────────────────────────── #
-    freq_grouped = (
-        df.groupby(['day_name', 'hour_label', 'day_sort', 'hour_sort'])
-          .size()
-          .reset_index(name='accident_count')
-    )
-
-    # Altair selection (multi so you can pick several cells)
-    sel_time = alt.selection_multi(fields=['day_name', 'hour_label'])
-
-    freq_chart = (
-        alt.Chart(freq_grouped)
-        .mark_rect()
-        .encode(
-            x=alt.X(
-                'hour_label:N',
-                title='Hour of Day',
-                sort=freq_grouped.sort_values('hour_sort')['hour_label'].unique().tolist()
-            ),
-            y=alt.Y(
-                'day_name:N',
-                title='Day of Week',
-                sort=freq_grouped.sort_values('day_sort')['day_name'].unique().tolist()
-            ),
-            color=alt.Color(
-                'accident_count:Q',
-                scale=alt.Scale(scheme='reds'),
-                title='Accident Frequency'
-            ),
-            tooltip=['day_name', 'hour_label', 'accident_count']
-        )
-        .add_selection(sel_time)
-        .properties(
-            title='Accident Frequency by Hour and Day of Week',
-            width=700,
-            height=300
-        )
-    )
-
-    # ── 3.  Spatial heat-map, filtered by the time selection ────────────────────────────────── #
-    #     Keep only points inside the Nashville bounds first
-    df_geo = df[
-        (df['Lat'] >= 36.0) & (df['Lat'] <= 36.4) &
-        (df['Long'] >= -87.0) & (df['Long'] <= -86.5)
-    ]
-
-
-    # ── 4.  Build one shared selection and two charts, then h-concat ───────────────────────── #
-        # ── 4.  Shared selection + two charts rendered in Streamlit columns ─────────────────────── #
-    sel_time = alt.selection_multi(
-        fields=['day_name', 'hour_label'],
-        empty='all'         # show full data until user clicks
-    )
-
-    # Left: day × hour heat-table
-    freq_chart = (
-        alt.Chart(freq_grouped)
-            .mark_rect()
-            .encode(
-                x=alt.X('hour_label:N',
-                        title='Hour of Day',
-                        sort=freq_grouped.sort_values('hour_sort')['hour_label'].unique()),
-                y=alt.Y('day_name:N',
-                        title='Day of Week',
-                        sort=freq_grouped.sort_values('day_sort')['day_name'].unique()),
-                color=alt.Color('accident_count:Q',
-                                scale=alt.Scale(scheme='reds'),
-                                title='Accident Frequency'),
-                tooltip=['day_name', 'hour_label', 'accident_count']
-            )
-            .add_selection(sel_time)
-            .properties(height=300)          # width will follow column size
-    )
-
-    # Right: spatial heat-map filtered by the same selection
-    heatmap_geo = (
-        alt.Chart(df_geo)
-            .transform_filter(sel_time)
-            .mark_rect()
-            .encode(
-                x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
-                y=alt.Y('Lat:Q',  bin=alt.Bin(maxbins=60), title='Latitude'),
-                color=alt.Color('count():Q',
-                                scale=alt.Scale(scheme='reds'),
-                                title='Accident Count'),
-                tooltip=[
-                    alt.Tooltip('count():Q',   title='Accidents'),
-                    alt.Tooltip('day_name:N',  title='Day'),
-                    alt.Tooltip('hour_label:N',title='Hour')
-                ]
-            )
-            .properties(height=300)
-            .configure_axisX(labelAngle=0)
-    )
-
-    # Side-by-side layout; each chart fills its column
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.altair_chart(freq_chart, use_container_width=True)
-
-    with col2:
-        st.altair_chart(heatmap_geo, use_container_width=True)
-
-
-
-
-
-
