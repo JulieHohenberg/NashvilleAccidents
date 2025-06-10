@@ -43,7 +43,7 @@ st.markdown(
     <div style='display: flex; align-items: center;'>
         <div style='font-size: 80px; margin-right: 20px;'>⛅</div>
         <div style='font-size: 24px;'> <b>
-            How does weather impact the frequency and severity of accidents?
+            How does the weather impact the frequency and severity of accidents?
         </b></div>
     </div>
     """,
@@ -92,7 +92,17 @@ st.altair_chart(bar_chart, use_container_width=True)
 # Illumination filter (below bar chart, affects heat-map only) 
 #-------------------------------------------------------------------------------------------------#
 st.markdown("### How does lighting, in combination with weather, affect accident severity?")
-
+st.markdown(
+    """
+    <div style='display: flex; align-items: center;'>
+        <div style='font-size: 80px; margin-right: 20px;'>𓍙</div>
+        <div style='font-size: 24px;'> <b>
+            How does lighting, in combination with weather, affect accident severity?
+        </b></div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 top_illum = df['Illumination Description'].value_counts().nlargest(6).index
 illum_sel = st.multiselect("Lighting Condition(s)",
                            list(top_illum),
