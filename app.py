@@ -372,12 +372,13 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
 
     # ── 4.  Display the coordinated pair side-by-side ──────────────────────────────────────── #
     
-    # put the two charts next to each other
-    combined = (
-        alt.hconcat(freq_chart, heatmap_geo)
-        .resolve_scale(color='independent')   # keep separate colour scales
-    )
+    col1, col2 = st.columns(2)
 
-    st.altair_chart(combined, use_container_width=True)
+    with col1:
+        st.altair_chart(freq_chart, use_container_width=True)
+
+    with col2:
+        st.altair_chart(heatmap_geo, use_container_width=True)
+
 
 
