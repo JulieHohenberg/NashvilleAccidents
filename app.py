@@ -339,7 +339,3 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
 
     st.altair_chart(stacked, use_container_width=True)
 
-# debugging: count matching records
-selected_rows = df_geo[df_geo['day_name'].isin(sel_time['day_name']) &
-                    df_geo['hour_label'].isin(sel_time['hour_label'])]
-st.write("Filtered accident count:", len(selected_rows))
