@@ -261,80 +261,80 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
     heatmap = build_heat(df_weather_heat, metric_choice, weather_sel_heat, illum_sel)
     st.altair_chart(heatmap, use_container_width=True)
 
-    ########################################################################################
-    # Time/Day Heatmap and Map
-    ########################################################################################
-    with st.expander("Click to explore temporal & spatial patterns", expanded=False):
+########################################################################################
+# Time/Day Heatmap and Map
+########################################################################################
+with st.expander("Click to explore temporal & spatial patterns", expanded=False):
 
-        # 1 ── prepare labels
-        day_map  = {0:'Monday',1:'Tuesday',2:'Wednesday',3:'Thursday',
-                    4:'Friday',5:'Saturday',6:'Sunday'}
-        hour_map = {h: pd.to_datetime(f"{h}:00").strftime("%-I %p") for h in range(24)}
+    # 1 ── prepare labels
+    day_map  = {0:'Monday',1:'Tuesday',2:'Wednesday',3:'Thursday',
+                4:'Friday',5:'Saturday',6:'Sunday'}
+    hour_map = {h: pd.to_datetime(f"{h}:00").strftime("%-I %p") for h in range(24)}
 
-        df['day_name']   = df['day_of_week'].map(day_map)
-        df['hour_label'] = df['hour'].map(hour_map)
-        df['day_sort']   = df['day_of_week']
-        df['hour_sort']  = df['hour']
+    df['day_name']   = df['day_of_week'].map(day_map)
+    df['hour_label'] = df['hour'].map(hour_map)
+    df['day_sort']   = df['day_of_week']
+    df['hour_sort']  = df['hour']
 
-        freq = (
-            df.groupby(['day_name','hour_label','day_sort','hour_sort'])
-            .size().reset_index(name='accident_count')
+    freq = (
+        df.groupby(['day_name','hour_label','day_sort','hour_sort'])
+        .size().reset_index(name='accident_count')
+    )
+
+    # 2 ── shared selection (alt 5 style)
+    sel_time = alt.selection_point(
+        fields=['day_name', 'hour_label'],
+        toggle='event',       # multi-select with Shift / Ctrl
+        empty='all'
+    )
+
+    # 3 ── top chart: day × hour grid
+    freq_chart = (
+        alt.Chart(freq)
+        .mark_rect()
+        .encode(
+            x=alt.X('hour_label:N',
+                    sort=freq.sort_values('hour_sort')['hour_label'].unique(),
+                    title='Hour of Day'),
+            y=alt.Y('day_name:N',
+                    sort=freq.sort_values('day_sort')['day_name'].unique(),
+                    title='Day of Week'),
+            color=alt.Color('accident_count:Q',
+                            scale=alt.Scale(scheme='reds'),
+                            title='Accident Frequency'),
+            tooltip=['day_name','hour_label','accident_count']
         )
+        .add_params(sel_time)
+        .properties(height=300)
+    )
 
-        # 2 ── shared selection (alt 5 style)
-        sel_time = alt.selection_point(
-            fields=['day_name', 'hour_label'],
-            toggle='event',       # multi-select with Shift / Ctrl
-            empty='all'
+    # 4 ── bottom chart: spatial heat-map filtered by same selection
+    df_geo = df[(df['Lat'].between(36.0,36.4)) & (df['Long'].between(-87.0,-86.5))]
+
+    heatmap_geo = (
+        alt.Chart(df_geo)
+        .transform_filter(sel_time)
+        .mark_rect()
+        .encode(
+            x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
+            y=alt.Y('Lat:Q',  bin=alt.Bin(maxbins=60), title='Latitude'),
+            color=alt.Color('count():Q',
+                            scale=alt.Scale(scheme='reds'),
+                            title='Accident Count'),
+            tooltip=[
+                alt.Tooltip('count():Q',  title='Accidents'),
+                alt.Tooltip('day_name:N', title='Day'),
+                alt.Tooltip('hour_label:N', title='Hour')
+            ]
         )
+        .properties(height=350)
+    )
 
-        # 3 ── top chart: day × hour grid
-        freq_chart = (
-            alt.Chart(freq)
-            .mark_rect()
-            .encode(
-                x=alt.X('hour_label:N',
-                        sort=freq.sort_values('hour_sort')['hour_label'].unique(),
-                        title='Hour of Day'),
-                y=alt.Y('day_name:N',
-                        sort=freq.sort_values('day_sort')['day_name'].unique(),
-                        title='Day of Week'),
-                color=alt.Color('accident_count:Q',
-                                scale=alt.Scale(scheme='reds'),
-                                title='Accident Frequency'),
-                tooltip=['day_name','hour_label','accident_count']
-            )
-            .add_params(sel_time)
-            .properties(height=300)
-        )
+    # 5 ── vertical concat + global axis config
+    stacked = (
+        alt.vconcat(freq_chart, heatmap_geo)
+        .resolve_scale(color='independent')
+        .configure_axisX(labelAngle=0)          # config now lives at the concat level
+    )
 
-        # 4 ── bottom chart: spatial heat-map filtered by same selection
-        df_geo = df[(df['Lat'].between(36.0,36.4)) & (df['Long'].between(-87.0,-86.5))]
-
-        heatmap_geo = (
-            alt.Chart(df_geo)
-            .transform_filter(sel_time)
-            .mark_rect()
-            .encode(
-                x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
-                y=alt.Y('Lat:Q',  bin=alt.Bin(maxbins=60), title='Latitude'),
-                color=alt.Color('count():Q',
-                                scale=alt.Scale(scheme='reds'),
-                                title='Accident Count'),
-                tooltip=[
-                    alt.Tooltip('count():Q',  title='Accidents'),
-                    alt.Tooltip('day_name:N', title='Day'),
-                    alt.Tooltip('hour_label:N', title='Hour')
-                ]
-            )
-            .properties(height=350)
-        )
-
-        # 5 ── vertical concat + global axis config
-        stacked = (
-            alt.vconcat(freq_chart, heatmap_geo)
-            .resolve_scale(color='independent')
-            .configure_axisX(labelAngle=0)          # config now lives at the concat level
-        )
-
-        st.altair_chart(stacked, use_container_width=True)
+    st.altair_chart(stacked, use_container_width=True)
