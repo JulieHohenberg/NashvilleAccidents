@@ -287,7 +287,8 @@ with st.expander("Click to explore temporal patterns & collision types", expande
     def prep_tables(_df):
         day_map  = {0:'Monday',1:'Tuesday',2:'Wednesday',3:'Thursday',
                     4:'Friday',5:'Saturday',6:'Sunday'}
-        hour_map = {h: pd.to_datetime(f"{h}:00", format="%H:%M").strftime("%-I %p") for h in range(24)}
+        hour_map = {h: pd.to_datetime(f"{h}:00", format="%H:%M").strftime("%-I %p")
+            for h in range(24)}
 
         _df = _df.copy()
         _df['day_name']   = _df['day_of_week'].map(day_map)
@@ -333,6 +334,7 @@ with st.expander("Click to explore temporal patterns & collision types", expande
     )
 
     # 4 ── bottom chart: frequency per collision type, filtered by the same selection ------
+    # bottom chart: frequency per collision type, filtered by the same selection
     collision_freq = (
         alt.Chart(df_labeled)
         .transform_filter(sel_time)
@@ -340,10 +342,7 @@ with st.expander("Click to explore temporal patterns & collision types", expande
             accident_count='count()',
             groupby=['Collision Type Description']
         )
-        .transform_window(               # sort bars by count descending
-            sort=[alt.SortField('accident_count', order='descending')],
-            frame=[None, None]
-        )
+        #  🚫  delete transform_window – not needed
         .mark_bar()
         .encode(
             x=alt.X('accident_count:Q', title='Accident Frequency'),
@@ -358,6 +357,7 @@ with st.expander("Click to explore temporal patterns & collision types", expande
         .properties(height=350,
                     title='Accident Frequency by Collision Type')
     )
+
 
     # 5 ── vertically concatenate and show --------------------------------------------------
     stacked = (
