@@ -155,30 +155,6 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
 # Illumination filter (below bar chart, affects heat-map only) 
 #-------------------------------------------------------------------------------------------------#
 
-st.markdown(
-    """
-    <div style='display: flex; align-items: center;'>
-        <div style='font-size: 80px; margin-right: 20px;'>𓍙</div>
-        <div style='font-size: 24px;'> <b>
-            How does lighting, in combination with weather, affect accident severity?
-        </b></div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-#top_illum = df['Illumination Description'].value_counts().nlargest(6).index
-#illum_sel = st.multiselect("Lighting Condition(s)",
-                           #list(top_illum),
-                           #default=list(top_illum))
-
-#-------------------------------------------------------------------------------------------------#
-# Metric selector 
-#-------------------------------------------------------------------------------------------------#
-#metric_choice = st.selectbox("Metric", ["Injuries", "Fatalities"], index=0)
-
-#-------------------------------------------------------------------------------------------------#
-# Heat-map  (filtered by Weather + Lighting + Metric)
-#-------------------------------------------------------------------------------------------------#
 #-------------------------------------------------------------------------------------------------#
 # Lighting-and-Weather section ─ big emoji header (kept outside the dropdown)
 #-------------------------------------------------------------------------------------------------#
