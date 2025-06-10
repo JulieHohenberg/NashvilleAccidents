@@ -41,7 +41,7 @@ st.markdown(
     """
     <div style="text-align: center; padding: 20px 0;">
         <h1 style="font-family: 'Segoe UI', sans-serif; font-size: 48px; margin-bottom: 10px;">
-            ⛅ Weathering the Road
+            Weathering the Road
         </h1>
         <h3 style="font-family: 'Segoe UI', sans-serif; font-weight: normal; color: #444;">
             How Conditions and Location Impact Crash Severity and<br>
@@ -77,33 +77,43 @@ df_weather = df[df['Weather Description'].isin(weather_sel)]
 #-------------------------------------------------------------------------------------------------#
 # Bar chart  (filtered **only** by Weather)
 #-------------------------------------------------------------------------------------------------#
-sev_df = (df_weather.groupby('Weather Description')
-          .agg(total_acc=('Weather Description', 'count'),
-               inj=('has_injury', 'sum'),
-               fat=('has_fatality', 'sum'))
-          .reset_index())
+with st.expander("Click to explore weather-based accident analysis"):
+    # Weather filter (applies to *both* charts)
+    top_weather = df['Weather Description'].value_counts().nlargest(8).index
+    weather_sel = st.multiselect("Weather Condition(s)",
+                                 list(top_weather),
+                                 default=list(top_weather))
 
-sev_df['% with Injury']   = sev_df['inj'] / sev_df['total_acc'] * 100
-sev_df['% with Fatality'] = sev_df['fat'] / sev_df['total_acc'] * 100
-sev_melt = sev_df.melt('Weather Description',
-                       ['% with Injury', '% with Fatality'],
-                       var_name='Severity Type', value_name='Percentage')
+    df_weather = df[df['Weather Description'].isin(weather_sel)]
 
-bar_chart = (alt.Chart(sev_melt)
-    .mark_bar()
-    .encode(
-        x=alt.X('Weather Description:N', sort='-y',
-                axis=alt.Axis(labelAngle=-35, labelOverlap=False)),
-        y='Percentage:Q',
-        color=alt.Color('Severity Type:N',
-                        scale=alt.Scale(domain=['% with Injury','% with Fatality'],
-                                        range=['orange','crimson'])),
-        tooltip=['Weather Description','Severity Type',
-                 alt.Tooltip('Percentage:Q',format='.1f')])
-    .properties(title='Proportion of Accidents with Injuries or Fatalities',
-                height=420, width=800))
+    # Bar chart (filtered **only** by Weather)
+    sev_df = (df_weather.groupby('Weather Description')
+              .agg(total_acc=('Weather Description', 'count'),
+                   inj=('has_injury', 'sum'),
+                   fat=('has_fatality', 'sum'))
+              .reset_index())
 
-st.altair_chart(bar_chart, use_container_width=True)
+    sev_df['% with Injury']   = sev_df['inj'] / sev_df['total_acc'] * 100
+    sev_df['% with Fatality'] = sev_df['fat'] / sev_df['total_acc'] * 100
+    sev_melt = sev_df.melt('Weather Description',
+                           ['% with Injury', '% with Fatality'],
+                           var_name='Severity Type', value_name='Percentage')
+
+    bar_chart = (alt.Chart(sev_melt)
+        .mark_bar()
+        .encode(
+            x=alt.X('Weather Description:N', sort='-y',
+                    axis=alt.Axis(labelAngle=-35, labelOverlap=False)),
+            y='Percentage:Q',
+            color=alt.Color('Severity Type:N',
+                            scale=alt.Scale(domain=['% with Injury','% with Fatality'],
+                                            range=['orange','crimson'])),
+            tooltip=['Weather Description','Severity Type',
+                     alt.Tooltip('Percentage:Q',format='.1f')])
+        .properties(title='Proportion of Accidents with Injuries or Fatalities',
+                    height=420, width=800))
+
+    st.altair_chart(bar_chart, use_container_width=True)
 
 #-------------------------------------------------------------------------------------------------#
 # Illumination filter (below bar chart, affects heat-map only) 
