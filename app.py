@@ -276,27 +276,19 @@ st.markdown(
     unsafe_allow_html=True
 )
 with st.expander("Click to explore temporal & spatial patterns", expanded=False):
+
     st.markdown(
-        "Click a cell on the first chart to filter the map. "
+        "Click a cell in the grid to filter the map. "
         "**Shift-click** adds cells. "
-        "Use the button below to reset."
+        "**Double-click anywhere** in the grid to reset."
     )
 
-    # ── 0.  Session-state counter so each reset gives the selection a new name
-    if 'time_sel_version' not in st.session_state:
-        st.session_state.time_sel_version = 0
-
-    if st.button("🔄 Reset selection", key="reset_time_sel"):
-        st.session_state.time_sel_version += 1     # triggers rerun
-
-    sel_name = f"timeSel_{st.session_state.time_sel_version}"
-
-    # ── 1.  Prepare/cached data -------------------------------------------------------------
+    # 1 ── prepare labels (cached so it’s never slow)
     @st.cache_data
-    def prep_day_hour_tables(_df):
+    def prep_tables(_df):
         day_map  = {0:'Monday',1:'Tuesday',2:'Wednesday',3:'Thursday',
                     4:'Friday',5:'Saturday',6:'Sunday'}
-        hour_map = {h: pd.to_datetime(f"{h}:00").strftime("%-I %p") for h in range(24)}
+        hour_map = {h: pd.to_datetime(f\"{h}:00\").strftime(\"%-I %p\") for h in range(24)}
 
         _df = _df.copy()
         _df['day_name']   = _df['day_of_week'].map(day_map)
@@ -308,21 +300,24 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
             _df.groupby(['day_name','hour_label','day_sort','hour_sort'])
                 .size().reset_index(name='accident_count')
         )
-        geo_tbl  = _df[(_df['Lat'].between(36.0,36.4)) &
-                       (_df['Long'].between(-87.0,-86.5))]
+
+        # **Loosen bounds** so every point with coordinates shows
+        geo_tbl = _df[(_df['Lat'].between(35.8, 36.6)) &
+                      (_df['Long'].between(-87.2, -86.2))]
         return freq_tbl, geo_tbl
 
-    freq, df_geo = prep_day_hour_tables(df)
+    freq, df_geo = prep_tables(df)
 
-    # ── 2.  Shared selection (new name each reset) -------------------------------------------
+    # 2 ── shared selection (clears on double-click)
     sel_time = alt.selection_point(
-        name   = sel_name,
+        name   = "timeSel",
         fields = ['day_name', 'hour_label'],
-        toggle = 'event',    # Shift/Ctrl for multi-select
+        toggle = 'event',      # Shift/Ctrl for multi-select
+        clear  = 'dblclick',   # ← built-in reset
         empty  = 'all'
     )
 
-    # ── 3.  Day-hour heat-table --------------------------------------------------------------
+    # 3 ── day × hour grid
     freq_chart = (
         alt.Chart(freq)
         .mark_rect()
@@ -342,7 +337,7 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
         .properties(height=300)
     )
 
-    # ── 4.  Spatial heat-map filtered by the same selection ----------------------------------
+    # 4 ── spatial heat-map filtered by selection
     heatmap_geo = (
         alt.Chart(df_geo)
         .transform_filter(sel_time)
@@ -350,8 +345,7 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
         .encode(
             x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
             y=alt.Y('Lat:Q',  bin=alt.Bin(maxbins=60), title='Latitude'),
-            color=alt.Color('count():Q',
-                            scale=alt.Scale(scheme='reds'),
+            color=alt.Color('count():Q', scale=alt.Scale(scheme='reds'),
                             title='Accident Count'),
             tooltip=[
                 alt.Tooltip('count():Q',  title='Accidents'),
@@ -362,7 +356,7 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
         .properties(height=350)
     )
 
-    # ── 5.  Vertical concat + axis config ----------------------------------------------------
+    # 5 ── stack them vertically
     stacked = (
         alt.vconcat(freq_chart, heatmap_geo)
            .resolve_scale(color='independent')
@@ -370,4 +364,3 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
     )
 
     st.altair_chart(stacked, use_container_width=True)
-
