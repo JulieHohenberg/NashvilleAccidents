@@ -34,6 +34,11 @@ df['Weather Description'] = df['Weather Description'].replace('OTHER (NARRATIVE)
 exclude = ['OTHER', 'UNKNOWN']
 df = df[~df['Weather Description'].isin(exclude) &
         ~df['Illumination Description'].isin(exclude)]
+#-------------------------------------------------------------------------------------------------#
+# Title
+#-------------------------------------------------------------------------------------------------#
+st.markdown("## Weathering the Road")
+st.markdown("### How Conditions and Location Impact Crash Severity and Frequency in Nashville, Tennessee")
 
 #-------------------------------------------------------------------------------------------------#
 # Weather filter  (applies to *both* charts) 
@@ -91,7 +96,7 @@ st.altair_chart(bar_chart, use_container_width=True)
 #-------------------------------------------------------------------------------------------------#
 # Illumination filter (below bar chart, affects heat-map only) 
 #-------------------------------------------------------------------------------------------------#
-st.markdown("### How does lighting, in combination with weather, affect accident severity?")
+
 st.markdown(
     """
     <div style='display: flex; align-items: center;'>
