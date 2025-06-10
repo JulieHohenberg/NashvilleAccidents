@@ -336,26 +336,31 @@ with st.expander("Click to explore temporal patterns & collision types", expande
     # 4 ── bottom chart: frequency per collision type, filtered by the same selection ------
     # bottom chart: frequency per collision type, filtered by the same selection
     collision_freq = (
-        alt.Chart(df_labeled)
-        .transform_filter(sel_time)
-        .transform_aggregate(
-            accident_count='count()',
-            groupby=['Collision Type Description']
-        )
-        #  🚫  delete transform_window – not needed
-        .mark_bar()
-        .encode(
-            x=alt.X('accident_count:Q', title='Accident Frequency'),
-            y=alt.Y('Collision Type Description:N',
-                    sort='-x',
-                    title='Collision Type Description'),
-            color=alt.Color('accident_count:Q',
-                            scale=alt.Scale(scheme='reds'),
-                            title='Accident Frequency'),
-            tooltip=['Collision Type Description', 'accident_count']
-        )
-        .properties(height=350,
-                    title='Accident Frequency by Collision Type')
+    alt.Chart(df_labeled)                       # df_labeled already has day/hour labels
+      .transform_filter(sel_time)               # ← same selection as the grid
+      .transform_aggregate(
+          accident_count='count()',             # create the field
+          groupby=['Collision Type Description']
+      )
+      .mark_bar()
+      .encode(
+          x=alt.X('accident_count:Q',           # quantitative type specified
+                  title='Accident Frequency'),
+          y=alt.Y('Collision Type Description:N',
+                  sort='-x',
+                  title='Collision Type Description'),
+          color=alt.Color('accident_count:Q',
+                          scale=alt.Scale(scheme='reds'),
+                          title='Accident Frequency'),
+          tooltip=[
+              'Collision Type Description:N',
+              alt.Tooltip('accident_count:Q', title='Accident Count')
+          ]
+      )
+      .properties(
+          height=350,
+          title='Accident Frequency by Collision Type'
+      )
     )
 
 
