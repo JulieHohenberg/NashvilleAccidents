@@ -276,7 +276,16 @@ st.markdown(
     unsafe_allow_html=True
 )
 with st.expander("Click to explore temporal & spatial patterns", expanded=False):
-    st.markdown("Click a cell on the first chart to see distribution of time and day on the map.")
+    st.markdown(
+        "Click a cell on the first chart to filter the map. "
+        "**Shift-click** adds cells. "
+        "Use the button below to reset."
+    )
+    
+    if st.button("🔄 Reset selection", key="reset_time_sel"):
+        # The mere act of clicking forces a Streamlit rerun,
+        # so the charts below are redrawn with a fresh selection
+        pass
 
     # 1 ── prepare labels
     day_map  = {0:'Monday',1:'Tuesday',2:'Wednesday',3:'Thursday',
