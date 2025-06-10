@@ -275,15 +275,14 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-with st.expander("Click to explore temporal & spatial patterns", expanded=False):
+with st.expander("Click to explore temporal patterns & collision types", expanded=False):
 
     st.markdown(
-        "Click a cell in the grid to filter the map. "
-        "**Shift-click** adds cells. "
-        "**Double-click anywhere** in the grid to reset."
+        "Click a cell in the grid to filter the bar chart below by day and hour. "
+        "**Shift-click** adds cells. **Double-click** anywhere in the grid to reset."
     )
 
-    # 1 ── prepare labels (cached so it’s never slow)
+    # 1 ── cached prep (day/hour labels & collision counts) -------------------------------
     @st.cache_data
     def prep_tables(_df):
         day_map  = {0:'Monday',1:'Tuesday',2:'Wednesday',3:'Thursday',
@@ -300,33 +299,29 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
             _df.groupby(['day_name','hour_label','day_sort','hour_sort'])
                 .size().reset_index(name='accident_count')
         )
+        return _df, freq_tbl
 
-        # **Loosen bounds** so every point with coordinates shows
-        geo_tbl = _df[(_df['Lat'].between(35.8, 36.6)) &
-                      (_df['Long'].between(-87.2, -86.2))]
-        return freq_tbl, geo_tbl
+    df_labeled, freq_grid = prep_tables(df)
 
-    freq, df_geo = prep_tables(df)
-
-    # 2 ── shared selection (clears on double-click)
+    # 2 ── shared selection on the grid (double-click clears) ------------------------------
     sel_time = alt.selection_point(
         name   = "timeSel",
         fields = ['day_name', 'hour_label'],
-        toggle = 'event',      # Shift/Ctrl for multi-select
-        clear  = 'dblclick',   # ← built-in reset
+        toggle = 'event',
+        clear  = 'dblclick',   # built-in reset
         empty  = 'all'
     )
 
-    # 3 ── day × hour grid
-    freq_chart = (
-        alt.Chart(freq)
+    # 3 ── top chart: day × hour grid ------------------------------------------------------
+    grid_chart = (
+        alt.Chart(freq_grid)
         .mark_rect()
         .encode(
             x=alt.X('hour_label:N',
-                    sort=freq.sort_values('hour_sort')['hour_label'].unique(),
+                    sort=freq_grid.sort_values('hour_sort')['hour_label'].unique(),
                     title='Hour of Day'),
             y=alt.Y('day_name:N',
-                    sort=freq.sort_values('day_sort')['day_name'].unique(),
+                    sort=freq_grid.sort_values('day_sort')['day_name'].unique(),
                     title='Day of Week'),
             color=alt.Color('accident_count:Q',
                             scale=alt.Scale(scheme='reds'),
@@ -337,28 +332,36 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
         .properties(height=300)
     )
 
-    # 4 ── spatial heat-map filtered by selection
-    heatmap_geo = (
-        alt.Chart(df_geo)
+    # 4 ── bottom chart: frequency per collision type, filtered by the same selection ------
+    collision_freq = (
+        alt.Chart(df_labeled)
         .transform_filter(sel_time)
-        .mark_rect()
-        .encode(
-            x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
-            y=alt.Y('Lat:Q',  bin=alt.Bin(maxbins=60), title='Latitude'),
-            color=alt.Color('count():Q', scale=alt.Scale(scheme='reds'),
-                            title='Accident Count'),
-            tooltip=[
-                alt.Tooltip('count():Q',  title='Accidents'),
-                alt.Tooltip('day_name:N', title='Day'),
-                alt.Tooltip('hour_label:N', title='Hour')
-            ]
+        .transform_aggregate(
+            accident_count='count()',
+            groupby=['Collision Type Description']
         )
-        .properties(height=350)
+        .transform_window(               # sort bars by count descending
+            sort=[alt.SortField('accident_count', order='descending')],
+            frame=[None, None]
+        )
+        .mark_bar()
+        .encode(
+            x=alt.X('accident_count:Q', title='Accident Frequency'),
+            y=alt.Y('Collision Type Description:N',
+                    sort='-x',
+                    title='Collision Type Description'),
+            color=alt.Color('accident_count:Q',
+                            scale=alt.Scale(scheme='reds'),
+                            title='Accident Frequency'),
+            tooltip=['Collision Type Description', 'accident_count']
+        )
+        .properties(height=350,
+                    title='Accident Frequency by Collision Type')
     )
 
-    # 5 ── stack them vertically
+    # 5 ── vertically concatenate and show --------------------------------------------------
     stacked = (
-        alt.vconcat(freq_chart, heatmap_geo)
+        alt.vconcat(grid_chart, collision_freq)
            .resolve_scale(color='independent')
            .configure_axisX(labelAngle=0)
     )
