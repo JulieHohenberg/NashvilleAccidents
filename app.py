@@ -347,38 +347,67 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
         (df['Long'] >= -87.0) & (df['Long'] <= -86.5)
     ]
 
-    heatmap_geo = (
-        alt.Chart(df_geo)
-        .transform_filter(sel_time)          # <- coordinated filter
-        .mark_rect()
-        .encode(
-            x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
-            y=alt.Y('Lat:Q',  bin=alt.Bin(maxbins=60), title='Latitude'),
-            color=alt.Color('count():Q', scale=alt.Scale(scheme='reds'),
-                            title='Accident Count'),
-            tooltip=[
-                alt.Tooltip('count():Q',   title='Accidents'),
-                alt.Tooltip('day_name:N',  title='Day'),
-                alt.Tooltip('hour_label:N',title='Hour')
-            ]
-        )
-        .properties(
-            title='Heat-map of Accident Clusters in Nashville Area',
-            width=600,
-            height=500
-        )
-        .configure_axisX(labelAngle=0)
+
+    # ── 4.  Display the coordinated pair side-by-side ─────────────────────────────────────── #
+    #
+    # Make the selection default to “all rows”
+    sel_time = alt.selection_multi(fields=['day_name', 'hour_label'], empty='all')
+
+    # rebuild freq_chart & heatmap_geo with that updated selection
+    freq_chart = (
+        alt.Chart(freq_grouped)
+            .mark_rect()
+            .encode(
+                x=alt.X(
+                    'hour_label:N',
+                    title='Hour of Day',
+                    sort=freq_grouped.sort_values('hour_sort')['hour_label'].unique().tolist()
+                ),
+                y=alt.Y(
+                    'day_name:N',
+                    title='Day of Week',
+                    sort=freq_grouped.sort_values('day_sort')['day_name'].unique().tolist()
+                ),
+                color=alt.Color(
+                    'accident_count:Q',
+                    scale=alt.Scale(scheme='reds'),
+                    title='Accident Frequency'
+                ),
+                tooltip=['day_name', 'hour_label', 'accident_count']
+            )
+            .add_selection(sel_time)
+            .properties(width=380, height=300)   # ②  narrower so it fits the column
     )
 
-    # ── 4.  Display the coordinated pair side-by-side ──────────────────────────────────────── #
-    
-    col1, col2 = st.columns(2)
+    heatmap_geo = (
+        alt.Chart(df_geo)
+            .transform_filter(sel_time)
+            .mark_rect()
+            .encode(
+                x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
+                y=alt.Y('Lat:Q',  bin=alt.Bin(maxbins=60), title='Latitude'),
+                color=alt.Color('count():Q',
+                                scale=alt.Scale(scheme='reds'),
+                                title='Accident Count'),
+                tooltip=[
+                    alt.Tooltip('count():Q',   title='Accidents'),
+                    alt.Tooltip('day_name:N',  title='Day'),
+                    alt.Tooltip('hour_label:N',title='Hour')
+                ]
+            )
+            .properties(width=380, height=500)
+            .configure_axisX(labelAngle=0)
+    )
+
+    # Show them with Streamlit columns (wider right column so map isn’t cramped)
+    col1, col2 = st.columns([1, 1.2])
 
     with col1:
         st.altair_chart(freq_chart, use_container_width=True)
 
     with col2:
         st.altair_chart(heatmap_geo, use_container_width=True)
+
 
 
 
