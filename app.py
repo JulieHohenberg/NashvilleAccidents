@@ -21,19 +21,15 @@ else:
 #-------------------------------------------------------------------------------------------------#
 # Basic preprocessing ----------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------#
-df['Date and Time'] = pd.to_datetime(df['Date and Time'],
-                                     format='%m/%d/%Y %I:%M:%S %p')
-# Date/Time preprocessing ---------------------------------------------------------------------------
+
+# Date/Time preprocessing 
 df['Date and Time'] = pd.to_datetime(df['Date and Time'],
                                      format='%m/%d/%Y %I:%M:%S %p')
 
-# 👉  Add these two lines  ───────────────────────────────────────────────────────────────────────
 df['day_of_week'] = df['Date and Time'].dt.dayofweek   # Monday=0 … Sunday=6
 df['hour']        = df['Date and Time'].dt.hour        # 0–23
-# ────────────────────────────────────────────────────────────────────────────────────────────────
 
-df['has_injury']   = df['Number of Injuries']   > 0
-df['has_fatality'] = df['Number of Fatalities'] > 0
+
 
 df['has_injury']   = df['Number of Injuries']   > 0
 df['has_fatality'] = df['Number of Fatalities'] > 0
@@ -375,4 +371,13 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
     )
 
     # ── 4.  Display the coordinated pair side-by-side ──────────────────────────────────────── #
-    st.altair_chart(freq_chart & heatmap_geo, use_container_width=True)
+    
+    # put the two charts next to each other
+    combined = (
+        alt.hconcat(freq_chart, heatmap_geo)
+        .resolve_scale(color='independent')   # keep separate colour scales
+    )
+
+    st.altair_chart(combined, use_container_width=True)
+
+
