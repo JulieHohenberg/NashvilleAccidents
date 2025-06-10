@@ -37,8 +37,20 @@ df = df[~df['Weather Description'].isin(exclude) &
 #-------------------------------------------------------------------------------------------------#
 # Title
 #-------------------------------------------------------------------------------------------------#
-st.markdown("## Weathering the Road")
-st.markdown("### How Conditions and Location Impact Crash Severity and Frequency in Nashville, Tennessee")
+st.markdown(
+    """
+    <div style="text-align: center; padding: 20px 0;">
+        <h1 style="font-family: 'Segoe UI', sans-serif; font-size: 48px; margin-bottom: 10px;">
+            ⛅ Weathering the Road
+        </h1>
+        <h3 style="font-family: 'Segoe UI', sans-serif; font-weight: normal; color: #444;">
+            How Conditions and Location Impact Crash Severity and<br>
+            Frequency in Nashville, Tennessee
+        </h3>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 #-------------------------------------------------------------------------------------------------#
 # Weather filter  (applies to *both* charts) 
