@@ -38,7 +38,7 @@ df = df[~df['Weather Description'].isin(exclude) &
 #-------------------------------------------------------------------------------------------------#
 # Weather filter  (applies to *both* charts) 
 #-------------------------------------------------------------------------------------------------#
-st.markdown("### Weather Filter")
+st.markdown("### How does weather impact the frequency and severity of accidents?")
 
 top_weather = df['Weather Description'].value_counts().nlargest(8).index
 weather_sel = st.multiselect("Weather Condition(s)",
@@ -81,7 +81,7 @@ st.altair_chart(bar_chart, use_container_width=True)
 #-------------------------------------------------------------------------------------------------#
 # Illumination filter (below bar chart, affects heat-map only) 
 #-------------------------------------------------------------------------------------------------#
-st.markdown("### Lighting Filter (for heat-map)")
+st.markdown("### How does lighting, in combination with weather, affect accident severity?")
 
 top_illum = df['Illumination Description'].value_counts().nlargest(6).index
 illum_sel = st.multiselect("Lighting Condition(s)",
