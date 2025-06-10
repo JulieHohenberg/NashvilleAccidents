@@ -38,7 +38,17 @@ df = df[~df['Weather Description'].isin(exclude) &
 #-------------------------------------------------------------------------------------------------#
 # Weather filter  (applies to *both* charts) 
 #-------------------------------------------------------------------------------------------------#
-st.markdown("### <span style='font-size:30px;'>⛅</span> How does weather impact the frequency and severity of accidents?", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div style='display: flex; align-items: center;'>
+        <div style='font-size: 80px; margin-right: 20px;'>⛅</div>
+        <div style='font-size: 24px;'>
+            How does weather impact the frequency and severity of accidents?
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 top_weather = df['Weather Description'].value_counts().nlargest(8).index
 weather_sel = st.multiselect("Weather Condition(s)",
