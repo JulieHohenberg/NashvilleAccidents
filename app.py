@@ -348,65 +348,67 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
     ]
 
 
-    # ── 4.  Display the coordinated pair side-by-side ─────────────────────────────────────── #
-    #
-    # Make the selection default to “all rows”
-    sel_time = alt.selection_multi(fields=['day_name', 'hour_label'], empty='all')
+    # ── 4.  Build one shared selection and two charts, then h-concat ───────────────────────── #
+    sel_time = alt.selection_multi(
+        fields=['day_name', 'hour_label'],
+        empty='all'          #  ← show everything until user clicks
+    )
 
-    # rebuild freq_chart & heatmap_geo with that updated selection
+    # Left chart: day × hour frequency
     freq_chart = (
         alt.Chart(freq_grouped)
-            .mark_rect()
-            .encode(
-                x=alt.X(
-                    'hour_label:N',
-                    title='Hour of Day',
-                    sort=freq_grouped.sort_values('hour_sort')['hour_label'].unique().tolist()
-                ),
-                y=alt.Y(
-                    'day_name:N',
-                    title='Day of Week',
-                    sort=freq_grouped.sort_values('day_sort')['day_name'].unique().tolist()
-                ),
-                color=alt.Color(
-                    'accident_count:Q',
-                    scale=alt.Scale(scheme='reds'),
-                    title='Accident Frequency'
-                ),
-                tooltip=['day_name', 'hour_label', 'accident_count']
-            )
-            .add_selection(sel_time)
-            .properties(width=380, height=300)   # ②  narrower so it fits the column
+        .mark_rect()
+        .encode(
+            x=alt.X(
+                'hour_label:N',
+                title='Hour of Day',
+                sort=freq_grouped.sort_values('hour_sort')['hour_label'].unique().tolist()
+            ),
+            y=alt.Y(
+                'day_name:N',
+                title='Day of Week',
+                sort=freq_grouped.sort_values('day_sort')['day_name'].unique().tolist()
+            ),
+            color=alt.Color(
+                'accident_count:Q',
+                scale=alt.Scale(scheme='reds'),
+                title='Accident Frequency'
+            ),
+            tooltip=['day_name', 'hour_label', 'accident_count']
+        )
+        .add_selection(sel_time)
+        .properties(width=450, height=300)
     )
 
+    # Right chart: spatial heat-map filtered by the same selection
     heatmap_geo = (
         alt.Chart(df_geo)
-            .transform_filter(sel_time)
-            .mark_rect()
-            .encode(
-                x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
-                y=alt.Y('Lat:Q',  bin=alt.Bin(maxbins=60), title='Latitude'),
-                color=alt.Color('count():Q',
-                                scale=alt.Scale(scheme='reds'),
-                                title='Accident Count'),
-                tooltip=[
-                    alt.Tooltip('count():Q',   title='Accidents'),
-                    alt.Tooltip('day_name:N',  title='Day'),
-                    alt.Tooltip('hour_label:N',title='Hour')
-                ]
-            )
-            .properties(width=380, height=500)
-            .configure_axisX(labelAngle=0)
+        .transform_filter(sel_time)
+        .mark_rect()
+        .encode(
+            x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
+            y=alt.Y('Lat:Q',  bin=alt.Bin(maxbins=60), title='Latitude'),
+            color=alt.Color('count():Q',
+                            scale=alt.Scale(scheme='reds'),
+                            title='Accident Count'),
+            tooltip=[
+                alt.Tooltip('count():Q',   title='Accidents'),
+                alt.Tooltip('day_name:N',  title='Day'),
+                alt.Tooltip('hour_label:N',title='Hour')
+            ]
+        )
+        .properties(width=450, height=500)
+        .configure_axisX(labelAngle=0)
     )
 
-    # Show them with Streamlit columns (wider right column so map isn’t cramped)
-    col1, col2 = st.columns([1, 1.2])
+    # Put them next to each other with Altair's hconcat (avoids column squeezing)
+    pair = (
+        alt.hconcat(freq_chart, heatmap_geo)
+           .resolve_scale(color='independent')   # keep colour scales separate
+    )
 
-    with col1:
-        st.altair_chart(freq_chart, use_container_width=True)
+    st.altair_chart(pair, use_container_width=False)
 
-    with col2:
-        st.altair_chart(heatmap_geo, use_container_width=True)
 
 
 
