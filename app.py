@@ -287,7 +287,7 @@ with st.expander("Click to explore temporal patterns & collision types", expande
     def prep_tables(_df):
         day_map  = {0:'Monday',1:'Tuesday',2:'Wednesday',3:'Thursday',
                     4:'Friday',5:'Saturday',6:'Sunday'}
-        hour_map = {h: pd.to_datetime(f\"{h}:00\").strftime(\"%-I %p\") for h in range(24)}
+        hour_map = {h: pd.to_datetime(f"{h}:00", format="%H:%M").strftime("%-I %p") for h in range(24)}
 
         _df = _df.copy()
         _df['day_name']   = _df['day_of_week'].map(day_map)
