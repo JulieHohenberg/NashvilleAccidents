@@ -67,12 +67,12 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-top_weather = df['Weather Description'].value_counts().nlargest(8).index
-weather_sel = st.multiselect("Weather Condition(s)",
-                             list(top_weather),
-                             default=list(top_weather))
+#top_weather = df['Weather Description'].value_counts().nlargest(8).index
+#weather_sel = st.multiselect("Weather Condition(s)",
+                             #list(top_weather),
+                             #default=list(top_weather))
 
-df_weather = df[df['Weather Description'].isin(weather_sel)]
+#df_weather = df[df['Weather Description'].isin(weather_sel)]
 
 #-------------------------------------------------------------------------------------------------#
 # Bar chart  (filtered **only** by Weather)
@@ -158,15 +158,15 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-top_illum = df['Illumination Description'].value_counts().nlargest(6).index
-illum_sel = st.multiselect("Lighting Condition(s)",
-                           list(top_illum),
-                           default=list(top_illum))
+#top_illum = df['Illumination Description'].value_counts().nlargest(6).index
+#illum_sel = st.multiselect("Lighting Condition(s)",
+                           #list(top_illum),
+                           #default=list(top_illum))
 
 #-------------------------------------------------------------------------------------------------#
 # Metric selector 
 #-------------------------------------------------------------------------------------------------#
-metric_choice = st.selectbox("Metric", ["Injuries", "Fatalities"], index=0)
+#metric_choice = st.selectbox("Metric", ["Injuries", "Fatalities"], index=0)
 
 #-------------------------------------------------------------------------------------------------#
 # Heat-map  (filtered by Weather + Lighting + Metric)
