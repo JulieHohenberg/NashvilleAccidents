@@ -179,115 +179,9 @@ st.markdown(
 #-------------------------------------------------------------------------------------------------#
 # Heat-map  (filtered by Weather + Lighting + Metric)
 #-------------------------------------------------------------------------------------------------#
-with st.expander("Click to explore lighting & weather interaction", expanded=False):
-
-    # Re-select weather (needed for this analysis)
-    top_weather2 = df['Weather Description'].value_counts().nlargest(8).index
-    weather_sel_heat = st.multiselect(
-        "Weather Condition(s)",
-        list(top_weather2),
-        default=list(top_weather2),
-        key="weather_sel_heat",
-    )
-
-    # Lighting filter
-    top_illum = df['Illumination Description'].value_counts().nlargest(6).index
-    illum_sel = st.multiselect(
-        "Lighting Condition(s)",
-        list(top_illum),
-        default=list(top_illum),
-        key="illum_multiselect",
-    )
-
-    # Metric selector
-    metric_choice = st.selectbox(
-        "Metric",
-        ["Injuries", "Fatalities"],
-        index=0,
-        key="metric_choice_select",
-    )
-
-    # ----------------- Heat-map (filtered by Weather + Lighting + Metric) ------------------ #
-    def build_heat(df_in, metric, w_list, i_list):
-        agg_col = 'Number of Injuries' if metric == "Injuries" else 'Number of Fatalities'
-        title   = f"Average {metric} per Accident"
-        fmt     = '.2f' if metric == "Injuries" else '.3f'
-
-        df_sub = df_in[df_in['Illumination Description'].isin(i_list)]
-
-        grp = (
-            df_sub.groupby(['Weather Description', 'Illumination Description'])
-            .agg(
-                total=(agg_col, 'sum'),
-                acc_cnt=('Weather Description', 'count')
-            )
-            .reset_index()
-        )
-
-        # full grid so every tile shows
-        full = pd.MultiIndex.from_product(
-            [w_list, i_list],
-            names=['Weather Description', 'Illumination Description']
-        )
-        grp = (
-            grp.set_index(['Weather Description', 'Illumination Description'])
-            .reindex(full, fill_value=0)
-            .reset_index()
-        )
-        grp['avg_val'] = np.where(
-            grp['acc_cnt'] > 0,
-            grp['total'] / grp['acc_cnt'],
-            0
-        )
-
-        color_scale = alt.Scale(
-            scheme='reds',
-            domain=[0, grp['avg_val'].max()]
-        )
-
-        return (
-            alt.Chart(grp)
-            .mark_rect()
-            .encode(
-                x='Illumination Description:N',
-                y='Weather Description:N',
-                color=alt.Color(
-                    'avg_val:Q',
-                    scale=color_scale,
-                    title=f'Avg {metric} / Accident'
-                ),
-                tooltip=[
-                    'Weather Description',
-                    'Illumination Description',
-                    alt.Tooltip('avg_val:Q', format=fmt)
-                ]
-            )
-            .properties(title=title, width=800, height=420)
-        )
-
-    df_weather_heat = df[df['Weather Description'].isin(weather_sel_heat)]
-    heatmap = build_heat(df_weather_heat, metric_choice, weather_sel_heat, illum_sel)
-    st.altair_chart(heatmap, use_container_width=True)
-
-#-------------------------------------------------------------------------------------------------#
-# Time-of-day section ─ big emoji header (kept outside the dropdown)
-#-------------------------------------------------------------------------------------------------#
-st.markdown(
-    """
-    <div style='display: flex; align-items: center;'>
-        <div style='font-size: 80px; margin-right: 20px;'>🕒</div>
-        <div style='font-size: 24px;'><b>
-            How do time and day affect accident frequency and severity?
-        </b></div>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-#======================== 3️⃣ TIME  ×  LOCATION  ANALYSIS (COORDINATED) =========================#
 with st.expander("Click to explore temporal & spatial patterns", expanded=False):
 
-    # 1 – Label prep
+    # 1 ── Create labels once ────────────────────────────────────────────────────────────────
     day_mapping  = {0:'Monday',1:'Tuesday',2:'Wednesday',3:'Thursday',
                     4:'Friday',5:'Saturday',6:'Sunday'}
     hour_mapping = {h: pd.to_datetime(f"{h}:00").strftime("%-I %p") for h in range(24)}
@@ -297,19 +191,20 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
     df['day_sort']   = df['day_of_week']
     df['hour_sort']  = df['hour']
 
+    # 2 ── Frequency table ──────────────────────────────────────────────────────────────────
     freq_grouped = (
         df.groupby(['day_name','hour_label','day_sort','hour_sort'])
           .size()
           .reset_index(name='accident_count')
     )
 
-    # 2 – One shared selection, default = all rows
+    # 3 ── One shared selection (default = all) ─────────────────────────────────────────────
     sel_time = alt.selection_multi(
         fields=['day_name', 'hour_label'],
         empty='all'
     )
 
-    # 3 – Day-hour heat-table
+    # 4 ── Day-hour heat-table (top chart) ─────────────────────────────────────────────────
     freq_chart = (
         alt.Chart(freq_grouped)
         .mark_rect()
@@ -320,42 +215,49 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
             y=alt.Y('day_name:N',
                     sort=freq_grouped.sort_values('day_sort')['day_name'].unique(),
                     title='Day of Week'),
-            color=alt.Color('accident_count:Q', scale=alt.Scale(scheme='reds'),
+            color=alt.Color('accident_count:Q',
+                            scale=alt.Scale(scheme='reds'),
                             title='Accident Frequency'),
             tooltip=['day_name', 'hour_label', 'accident_count']
         )
         .add_selection(sel_time)
-        .properties(height=300)            # width adapts to the column
-    )
-
-    # 4 – Spatial heat-map filtered by the same selection
-    df_geo = df[(df['Lat'].between(36.0,36.4)) & (df['Long'].between(-87.0,-86.5))]
-
-    heatmap_geo = (
-        alt.Chart(df_geo)
-        .transform_filter(sel_time)
-        .mark_rect()
-        .encode(
-            x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
-            y=alt.Y('Lat:Q',  bin=alt.Bin(maxbins=60), title='Latitude'),
-            color=alt.Color('count():Q', scale=alt.Scale(scheme='reds'),
-                            title='Accident Count'),
-            tooltip=[
-                alt.Tooltip('count():Q',   title='Accidents'),
-                alt.Tooltip('day_name:N',  title='Day'),
-                alt.Tooltip('hour_label:N',title='Hour')
-            ]
-        )
         .properties(height=300)
-        .configure_axisX(labelAngle=0)
     )
 
-    # 5 – Side-by-side display
-    col1, col2 = st.columns(2)
-    with col1:
-        st.altair_chart(freq_chart, use_container_width=True)
-    with col2:
-        st.altair_chart(heatmap_geo, use_container_width=True)
+    # 5 ── Geo heat-map filtered by the same selection (bottom chart) ───────────────────────
+    df_geo = df[(df['Lat'].between(36.0, 36.4)) & (df['Long'].between(-87.0, -86.5))]
+
+    if df_geo.empty:
+        st.warning("No latitude/longitude points fall inside the filtering window.")
+    else:
+        heatmap_geo = (
+            alt.Chart(df_geo)
+            .transform_filter(sel_time)
+            .mark_rect()
+            .encode(
+                x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
+                y=alt.Y('Lat:Q',  bin=alt.Bin(maxbins=60), title='Latitude'),
+                color=alt.Color('count():Q',
+                                scale=alt.Scale(scheme='reds'),
+                                title='Accident Count'),
+                tooltip=[
+                    alt.Tooltip('count():Q',   title='Accidents'),
+                    alt.Tooltip('day_name:N',  title='Day'),
+                    alt.Tooltip('hour_label:N',title='Hour')
+                ]
+            )
+            .configure_axisX(labelAngle=0)
+            .properties(height=350)
+        )
+
+        # 6 ── Vertically concatenate and display ───────────────────────────────────────────
+        stacked = (
+            alt.vconcat(freq_chart, heatmap_geo)
+               .resolve_scale(color='independent')   # separate colour legends
+        )
+
+        st.altair_chart(stacked, use_container_width=True)
+
 
 
 
