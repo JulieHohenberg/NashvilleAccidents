@@ -281,35 +281,48 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
         "**Shift-click** adds cells. "
         "Use the button below to reset."
     )
-    
+
+    # ── 0.  Session-state counter so each reset gives the selection a new name
+    if 'time_sel_version' not in st.session_state:
+        st.session_state.time_sel_version = 0
+
     if st.button("🔄 Reset selection", key="reset_time_sel"):
-        # The mere act of clicking forces a Streamlit rerun,
-        # so the charts below are redrawn with a fresh selection
-        pass
+        st.session_state.time_sel_version += 1     # triggers rerun
 
-    # 1 ── prepare labels
-    day_map  = {0:'Monday',1:'Tuesday',2:'Wednesday',3:'Thursday',
-                4:'Friday',5:'Saturday',6:'Sunday'}
-    hour_map = {h: pd.to_datetime(f"{h}:00").strftime("%-I %p") for h in range(24)}
+    sel_name = f"timeSel_{st.session_state.time_sel_version}"
 
-    df['day_name']   = df['day_of_week'].map(day_map)
-    df['hour_label'] = df['hour'].map(hour_map)
-    df['day_sort']   = df['day_of_week']
-    df['hour_sort']  = df['hour']
+    # ── 1.  Prepare/cached data -------------------------------------------------------------
+    @st.cache_data
+    def prep_day_hour_tables(_df):
+        day_map  = {0:'Monday',1:'Tuesday',2:'Wednesday',3:'Thursday',
+                    4:'Friday',5:'Saturday',6:'Sunday'}
+        hour_map = {h: pd.to_datetime(f"{h}:00").strftime("%-I %p") for h in range(24)}
 
-    freq = (
-        df.groupby(['day_name','hour_label','day_sort','hour_sort'])
-        .size().reset_index(name='accident_count')
-    )
+        _df = _df.copy()
+        _df['day_name']   = _df['day_of_week'].map(day_map)
+        _df['hour_label'] = _df['hour'].map(hour_map)
+        _df['day_sort']   = _df['day_of_week']
+        _df['hour_sort']  = _df['hour']
 
-    # 2 ── shared selection (alt 5 style)
+        freq_tbl = (
+            _df.groupby(['day_name','hour_label','day_sort','hour_sort'])
+                .size().reset_index(name='accident_count')
+        )
+        geo_tbl  = _df[(_df['Lat'].between(36.0,36.4)) &
+                       (_df['Long'].between(-87.0,-86.5))]
+        return freq_tbl, geo_tbl
+
+    freq, df_geo = prep_day_hour_tables(df)
+
+    # ── 2.  Shared selection (new name each reset) -------------------------------------------
     sel_time = alt.selection_point(
-        fields=['day_name', 'hour_label'],
-        toggle='event',       # multi-select with Shift / Ctrl
-        empty='all'
+        name   = sel_name,
+        fields = ['day_name', 'hour_label'],
+        toggle = 'event',    # Shift/Ctrl for multi-select
+        empty  = 'all'
     )
 
-    # 3 ── top chart: day × hour grid
+    # ── 3.  Day-hour heat-table --------------------------------------------------------------
     freq_chart = (
         alt.Chart(freq)
         .mark_rect()
@@ -329,9 +342,7 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
         .properties(height=300)
     )
 
-    # 4 ── bottom chart: spatial heat-map filtered by same selection
-    df_geo = df[(df['Lat'].between(36.0,36.4)) & (df['Long'].between(-87.0,-86.5))]
-
+    # ── 4.  Spatial heat-map filtered by the same selection ----------------------------------
     heatmap_geo = (
         alt.Chart(df_geo)
         .transform_filter(sel_time)
@@ -351,11 +362,11 @@ with st.expander("Click to explore temporal & spatial patterns", expanded=False)
         .properties(height=350)
     )
 
-    # 5 ── vertical concat + global axis config
+    # ── 5.  Vertical concat + axis config ----------------------------------------------------
     stacked = (
         alt.vconcat(freq_chart, heatmap_geo)
-        .resolve_scale(color='independent')
-        .configure_axisX(labelAngle=0)          # config now lives at the concat level
+           .resolve_scale(color='independent')
+           .configure_axisX(labelAngle=0)
     )
 
     st.altair_chart(stacked, use_container_width=True)
