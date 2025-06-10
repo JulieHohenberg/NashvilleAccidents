@@ -42,9 +42,9 @@ st.markdown(
     """
     <div style='display: flex; align-items: center;'>
         <div style='font-size: 80px; margin-right: 20px;'>⛅</div>
-        <div style='font-size: 24px;'>
+        <div style='font-size: 24px;'> <b>
             How does weather impact the frequency and severity of accidents?
-        </div>
+        </b></div>
     </div>
     """,
     unsafe_allow_html=True
