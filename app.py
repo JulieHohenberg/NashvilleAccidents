@@ -29,7 +29,10 @@ df['Date and Time'] = pd.to_datetime(df['Date and Time'],
 df['day_of_week'] = df['Date and Time'].dt.dayofweek   # Monday=0 … Sunday=6
 df['hour']        = df['Date and Time'].dt.hour        # 0–23
 
-
+# Add binary time-of-day indicators
+df["hour"] = df["Date and Time"].dt.hour
+df["is_night"] = df["hour"].apply(lambda h: h < 6 or h >= 20)
+df["is_day"] = ~df["is_night"]
 
 df['has_injury']   = df['Number of Injuries']   > 0
 df['has_fatality'] = df['Number of Fatalities'] > 0
