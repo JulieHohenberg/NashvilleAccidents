@@ -85,133 +85,116 @@ st.markdown(
 
 #df_weather = df[df['Weather Description'].isin(weather_sel)]
 
-#======================== 1️⃣ WEATHER-ONLY ANALYSIS (LINKED CHARTS) ==============================#
-with st.expander("Click to explore weather-based accident analysis", expanded=False):
+# -------------------------------------------------------------------------
+# 2️⃣  HEAT-MAP DATA  – frequency *proportion* by weather × time-of-day
+# -------------------------------------------------------------------------
+hm_counts = (
+    df_top.groupby(["Weather Description", "Time of Day"])
+          .size()
+          .reset_index(name="Accident Count")
+)
+hm_totals = (
+    df_top.groupby("Weather Description")
+          .size()
+          .reset_index(name="Total")
+)
+hm = hm_counts.merge(hm_totals, on="Weather Description")
+hm["Proportion"] = hm["Accident Count"] / hm["Total"]
 
-    import numpy as np  # near the top of your file is fine
+# -------------------------------------------------------------------------
+# 3️⃣  BAR-CHART DATA – severity by the **same** weather × time-of-day
+# -------------------------------------------------------------------------
+sev = (
+    df_top.groupby(["Weather Description", "Time of Day"])
+          .agg(
+              total = ("Weather Description", "count"),
+              inj   = ("has_injury",   "sum"),
+              fat   = ("has_fatality", "sum"),
+          )
+          .reset_index()
+)
+sev["% with Injury"]   = sev["inj"] / sev["total"] * 100
+sev["% with Fatality"] = sev["fat"] / sev["total"] * 100
 
-    # Weather multiselect (affects BOTH charts)
-    top_weather = df["Weather Description"].value_counts().nlargest(8).index
-    weather_sel = st.multiselect(
-        "Weather Condition(s)",
-        list(top_weather),
-        default=list(top_weather),
-        key="weather_sel_bar",
-    )
+sev_melt = sev.melt(
+    id_vars    = ["Weather Description", "Time of Day"],
+    value_vars = ["% with Injury", "% with Fatality"],
+    var_name   = "Severity Type",
+    value_name = "Percentage",
+)
 
-    df_weather = df[df["Weather Description"].isin(weather_sel)].copy()
+# -------------------------------------------------------------------------
+# 4️⃣  SHARED POINT SELECTION – click a cell to update the bars
+# -------------------------------------------------------------------------
+cell_sel = alt.selection_point(
+    fields = ["Weather Description", "Time of Day"],
+    empty  = "none",      # no bars until a cell is clicked
+    clear  = "dblclick",  # double-click background to reset
+)
 
-    # ------------------------------------------------------------------------------------------- #
-    # 📊  BAR-CHART  (accident severity by weather)
-    # ------------------------------------------------------------------------------------------- #
-    sev_df = (
-        df_weather.groupby("Weather Description")
-        .agg(
-            total_acc=("Weather Description", "count"),
-            inj=("has_injury", "sum"),
-            fat=("has_fatality", "sum"),
-        )
-        .reset_index()
-    )
-
-    sev_df["% with Injury"] = sev_df["inj"] / sev_df["total_acc"] * 100
-    sev_df["% with Fatality"] = sev_df["fat"] / sev_df["total_acc"] * 100
-
-    sev_melt = sev_df.melt(
-        id_vars="Weather Description",
-        value_vars=["% with Injury", "% with Fatality"],
-        var_name="Severity Type",
-        value_name="Percentage",
-    )
-
-    # ------------------------------------------------------------------------------------------- #
-    # 🔥  HEAT-MAP  (proportion of accidents by Day/Night for same weather)
-    # ------------------------------------------------------------------------------------------- #
-    # Ensure we have Day vs Night
-    df_weather["Time of Day"] = np.where(df_weather["is_night"], "Night", "Day")
-
-    counts = (
-        df_weather.groupby(["Weather Description", "Time of Day"])
-        .size()
-        .reset_index(name="Accident Count")
-    )
-    totals = (
-        df_weather.groupby("Weather Description")
-        .size()
-        .reset_index(name="Total")
-    )
-    normalized = counts.merge(totals, on="Weather Description")
-    normalized["Proportion"] = normalized["Accident Count"] / normalized["Total"]
-
-    # ------------------------------------------------------------------------------------------- #
-    # 🔗  SHARED SELECTION  (click / legend highlight)
-    # ------------------------------------------------------------------------------------------- #
-    weather_sel_alt = alt.selection_point(fields=["Weather Description"], bind="legend")
-
-    # Heat-map
-    heatmap = (
-        alt.Chart(normalized)
+# -------------------------------- HEAT-MAP -------------------------------- #
+heatmap = (
+    alt.Chart(hm)
         .mark_rect()
         .encode(
-            x=alt.X("Time of Day:N", title="Time of Day"),
-            y=alt.Y(
-                "Weather Description:N",
-                sort="-x",
-                title="Weather Condition",
-            ),
-            color=alt.Color(
-                "Proportion:Q",
-                scale=alt.Scale(scheme="reds"),
-                title="Proportion of Accidents",
-            ),
-            tooltip=[
+            x      = alt.X("Time of Day:N",  title="Time of Day"),
+            y      = alt.Y("Weather Description:N",
+                           sort="-x",
+                           title="Weather Condition"),
+            color  = alt.Color("Proportion:Q",
+                               scale=alt.Scale(scheme="reds"),
+                               title="Accident Share"),
+            stroke      = alt.condition(cell_sel, alt.value("black"), alt.value(None)),
+            strokeWidth = alt.condition(cell_sel, alt.value(2),       alt.value(0)),
+            tooltip = [
                 "Weather Description",
                 "Time of Day",
                 alt.Tooltip("Accident Count:Q", format=","),
-                alt.Tooltip("Proportion:Q", format=".2%"),
+                alt.Tooltip("Proportion:Q",     format=".2%"),
             ],
-            opacity=alt.condition(weather_sel_alt, alt.value(1), alt.value(0.15)),
         )
-        .add_params(weather_sel_alt)
-        .properties(width=320, height=420)
-    )
+        .add_params(cell_sel)
+        .properties(
+            width = 700,
+            height= 360,
+            title = "Accident share by Weather & Time of Day  (click a cell)",
+        )
+)
 
-    # Bar-chart (reuse sev_melt, link opacity to same selection)
-    bar_chart = (
-        alt.Chart(sev_melt)
+# -------------------------------- BAR-CHART -------------------------------- #
+bars = (
+    alt.Chart(sev_melt)
+        .transform_filter(cell_sel)   # show only the clicked cell’s data
         .mark_bar()
         .encode(
-            x=alt.X(
-                "Weather Description:N",
-                sort="-y",
-                axis=alt.Axis(labelAngle=-35, labelOverlap=False),
-            ),
-            y=alt.Y("Percentage:Q", title="Percentage of Accidents"),
-            color=alt.Color(
-                "Severity Type:N",
-                title="Severity Type",
-                scale=alt.Scale(
-                    domain=["% with Injury", "% with Fatality"],
-                    range=["orange", "crimson"],
-                ),
-            ),
+            x     = alt.X("Severity Type:N",
+                          sort=["% with Injury", "% with Fatality"],
+                          title=None),
+            y     = alt.Y("Percentage:Q", title="Percentage of Accidents"),
+            color = alt.Color("Severity Type:N",
+                              scale=alt.Scale(
+                                  domain=["% with Injury", "% with Fatality"],
+                                  range=["orange", "crimson"]),
+                              legend=None),
             tooltip=[
-                "Weather Description",
                 "Severity Type",
                 alt.Tooltip("Percentage:Q", format=".1f"),
             ],
-            opacity=alt.condition(weather_sel_alt, alt.value(1), alt.value(0.15)),
         )
-        .add_params(weather_sel_alt)
-        .properties(width=500, height=420)
-    )
+        .properties(
+            width = 700,
+            height= 240,
+            title = "Severity distribution for selected cell  (dbl-click to reset)",
+        )
+)
 
-    # ------------------------------------------------------------------------------------------- #
-    # 🖼️  COMBINE & DISPLAY
-    # ------------------------------------------------------------------------------------------- #
-    combined = (heatmap | bar_chart).resolve_scale(color="independent")
+# -------------------------------------------------------------------------
+# 5️⃣  STACK VERTICALLY & DISPLAY
+# -------------------------------------------------------------------------
+linked_viz = alt.vconcat(heatmap, bars).resolve_scale(color="independent")
 
-    st.altair_chart(combined, use_container_width=True)
+with st.expander("Weather impact on accident frequency & severity", expanded=True):
+    st.altair_chart(linked_viz, use_container_width=True)
 
 
 #-------------------------------------------------------------------------------------------------#
