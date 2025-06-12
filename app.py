@@ -35,6 +35,10 @@ df["is_night"] = df["hour"].apply(lambda h: h < 6 or h >= 20)
 df["is_day"] = ~df["is_night"]
 df["Time of Day"] = np.where(df["is_night"], "Night", "Day")
 
+# Use the 10 most common weather conditions (keeps the heat-map readable)
+top_weather = df["Weather Description"].value_counts().nlargest(10).index
+df_top      = df[df["Weather Description"].isin(top_weather)].copy()
+
 df['has_injury']   = df['Number of Injuries']   > 0
 df['has_fatality'] = df['Number of Fatalities'] > 0
 
