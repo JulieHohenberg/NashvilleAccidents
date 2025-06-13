@@ -18,44 +18,60 @@ else:
     if up is None: st.stop()
     df = load_csv(up)
 ################map trial############################
-# Sample the data to reduce size (adjust the number as needed)
-df_sampled = df.sample(n=100000, random_state=42) if len(df) > 100000 else df
+# ─────────────────── 1.  SAMPLE (keeps message size < 200 MB) ────────────────────
+MAX_POINTS = 100_000
+df_sampled = (
+    df.sample(n=MAX_POINTS, random_state=42)
+    if len(df) > MAX_POINTS
+    else df
+)
 
-# Compute map center
+# ─────────────────── 2.  CENTER THE MAP ON YOUR DATA ─────────────────────────────
 midpoint = (np.average(df_sampled["Lat"]), np.average(df_sampled["Long"]))
 
+# ─────────────────── 3.  MARKDOWN NARRATIVE ABOVE THE MAP ────────────────────────
 st.markdown("""
 ### Where Are Crashes Happening Most?
 
-Before diving into what causes crashes, let’s look at **where** they occur. The map below shows accident hot spots across the Nashville area.
-
-Use your mouse to zoom and pan around the map to explore clusters.
+Before diving into *why* crashes occur, let’s look at **where** they cluster in Nashville.  
+Zoom and pan to explore neighbourhood-level hot spots; hover to see exact locations.
 """)
 
-# Create PyDeck Heatmap Layer
+# ─────────────────── 4.  HEATMAP LAYER WITH  TOOL-TIPS  ──────────────────────────
 heatmap_layer = pdk.Layer(
     "HeatmapLayer",
     data=df_sampled,
     get_position='[Long, Lat]',
-    get_weight=1,
-    radius=200,
-    threshold=0.1,
-    aggregation=pdk.types.String("MEAN"),
+    get_weight=1,          # every crash counts equally
+    radius=180,            # metres; tweak for smoothing
+    intensity=0.4,         # lower = more nuanced colour scale
+    threshold=0.05,        # lower = show faint clusters too
+    pickable=True,         # enables tool-tips
+    colorRange=[           # 6-step yellow→red palette
+        [255,255,204],
+        [255,237,160],
+        [254,217,118],
+        [254,178, 76],
+        [253,141, 60],
+        [240, 59, 32],
+    ],
 )
 
-# View settings
+# ─────────────────── 5.  VIEW SETTINGS & BASEMAP ─────────────────────────────────
 view_state = pdk.ViewState(
-    latitude=midpoint[0],
-    longitude=midpoint[1],
-    zoom=11,
-    pitch=40,
+    latitude  = midpoint[0],
+    longitude = midpoint[1],
+    zoom      = 11,
+    pitch     = 40,
 )
 
-# Build deck
 deck = pdk.Deck(
-    layers=[heatmap_layer],
-    initial_view_state=view_state,
-    map_style="mapbox://styles/mapbox/light-v9"
+    layers              = [heatmap_layer],
+    initial_view_state  = view_state,
+    map_style           = "mapbox://styles/mapbox/streets-v11",  # shows city names
+    tooltip             = {
+        "text": "Lat: {Lat}\nLong: {Long}"
+    },
 )
 
 st.pydeck_chart(deck)
