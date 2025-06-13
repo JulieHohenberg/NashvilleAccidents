@@ -54,8 +54,8 @@ st.markdown(
             Weathering the Road
         </h1>
         <h3 style="font-family: 'Segoe UI', sans-serif; font-weight: normal; color: #444;">
-            How Conditions and Location Impact Crash Severity and<br>
-            Frequency in Nashville, Tennessee
+            Uncovering the Patterns Behind the Wheel: How Weather, Light, Time, and Place<br>
+            Interact to Shape Crash Risk in Nashville
         </h3>
     </div>
     """,
