@@ -88,63 +88,14 @@ st.markdown(
 #======================== 1️⃣ WEATHER-ONLY ANALYSIS (BAR CHART) ================================#
 with st.expander("Click to explore weather-based accident analysis", expanded=False):
 
-# Interactive scatterplot selector
-    scatter_selector = alt.selection_point(fields=['Weather Description'], toggle=True, clear='click')
-
-# Total accidents per weather type (scatter plot)
-acc_count_chart = (
-    alt.Chart(sev_df)
-    .mark_circle(size=200)
-    .encode(
-        x=alt.X('Weather Description:N', sort='-y'),
-        y=alt.Y('total_acc:Q', title='Total Accidents'),
-        color=alt.Color('total_acc:Q', scale=alt.Scale(scheme='blues')),
-        tooltip=['Weather Description', 'total_acc']
+    # Weather filter (affects this bar chart only)
+    top_weather = df['Weather Description'].value_counts().nlargest(8).index
+    weather_sel_bar = st.multiselect(
+        "Weather Condition(s)",
+        list(top_weather),
+        default=list(top_weather),
+        key="weather_sel_bar",
     )
-    .add_params(scatter_selector)
-    .properties(
-        title='Total Accidents by Weather Type',
-        width=800,
-        height=200
-    )
-)
-
-# Filter bar chart using the selection
-bar_chart = (
-    alt.Chart(sev_melt)
-    .transform_filter(scatter_selector)
-    .mark_bar()
-    .encode(
-        x=alt.X('Weather Description:N', sort='-y',
-                axis=alt.Axis(labelAngle=-35, labelOverlap=False)),
-        y='Percentage:Q',
-        color=alt.Color(
-            'Severity Type:N',
-            scale=alt.Scale(
-                domain=['% with Injury', '% with Fatality'],
-                range=['orange', 'crimson']
-            )
-        ),
-        tooltip=[
-            'Weather Description',
-            'Severity Type',
-            alt.Tooltip('Percentage:Q', format='.1f')
-        ]
-    )
-    .properties(
-        title='Proportion of Accidents with Injuries or Fatalities',
-        width=800,
-        height=400
-    )
-)
-
-# Combine the two
-st.altair_chart(
-    alt.vconcat(acc_count_chart, bar_chart).resolve_scale(color='independent'),
-    use_container_width=True
-)
-
-    
 
     df_weather_bar = df[df['Weather Description'].isin(weather_sel_bar)]
 
