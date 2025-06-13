@@ -19,62 +19,58 @@ else:
     df = load_csv(up)
 ################map trial############################
 # ─────────────────── 1.  SAMPLE (keeps message size < 200 MB) ────────────────────
-MAX_POINTS = 100_000
+import pydeck as pdk
+import numpy as np
+
+##############################################
+# 1.  THIN OUT THE DATA (hard cap at 50 k)   #
+##############################################
+MAX_POINTS = 50_000           # tune until it feels snappy
 df_sampled = (
     df.sample(n=MAX_POINTS, random_state=42)
     if len(df) > MAX_POINTS
     else df
 )
 
-# ─────────────────── 2.  CENTER THE MAP ON YOUR DATA ─────────────────────────────
+##############################################
+# 2.  VIEW SETTINGS                          #
+##############################################
 midpoint = (np.average(df_sampled["Lat"]), np.average(df_sampled["Long"]))
-
-# ─────────────────── 3.  MARKDOWN NARRATIVE ABOVE THE MAP ────────────────────────
-st.markdown("""
-### Where Are Crashes Happening Most?
-
-Before diving into *why* crashes occur, let’s look at **where** they cluster in Nashville.  
-Zoom and pan to explore neighbourhood-level hot spots; hover to see exact locations.
-""")
-
-# ─────────────────── 4.  HEATMAP LAYER WITH  TOOL-TIPS  ──────────────────────────
-heatmap_layer = pdk.Layer(
-    "HeatmapLayer",
-    data=df_sampled,
-    get_position='[Long, Lat]',
-    get_weight=1,          # every crash counts equally
-    radius=180,            # metres; tweak for smoothing
-    intensity=0.4,         # lower = more nuanced colour scale
-    threshold=0.05,        # lower = show faint clusters too
-    pickable=True,         # enables tool-tips
-    colorRange=[           # 6-step yellow→red palette
-        [255,255,204],
-        [255,237,160],
-        [254,217,118],
-        [254,178, 76],
-        [253,141, 60],
-        [240, 59, 32],
-    ],
+view_state = pdk.ViewState(
+    latitude=midpoint[0],
+    longitude=midpoint[1],
+    zoom=11,
+    pitch=0,                 # 0° pitch costs less GPU than 40°
 )
 
-# ─────────────────── 5.  VIEW SETTINGS & BASEMAP ─────────────────────────────────
-view_state = pdk.ViewState(
-    latitude  = midpoint[0],
-    longitude = midpoint[1],
-    zoom      = 11,
-    pitch     = 40,
+##############################################
+# 3.  HEXAGON LAYER (GPU aggregation)        #
+##############################################
+hex_layer = pdk.Layer(
+    "HexagonLayer",
+    data=df_sampled,
+    get_position='[Long, Lat]',
+    radius=150,              # smaller → more bins, larger → fewer bins
+    elevation_scale=30,      # 0 disables 3-D columns
+    extruded=False,          # False = 2-D → faster
+    elevation_range=[0, 100],
+    coverage=1,
+    pickable=True,
+    auto_highlight=True,     # subtle hover highlight
 )
 
 deck = pdk.Deck(
-    layers              = [heatmap_layer],
-    initial_view_state  = view_state,
-    map_style           = "mapbox://styles/mapbox/streets-v11",  # shows city names
-    tooltip             = {
-        "text": "Lat: {Lat}\nLong: {Long}"
-    },
+    layers=[hex_layer],
+    initial_view_state=view_state,
+    map_style="mapbox://styles/mapbox/streets-v11",
+    tooltip={"html": "<b>Accidents:</b> {point_count}", "style": {"font-size": "12px"}},
 )
 
+##############################################
+# 4.  RENDER                                 #
+##############################################
 st.pydeck_chart(deck)
+
 ############################### map trial##########################################
 #-------------------------------------------------------------------------------------------------#
 # Basic preprocessing ----------------------------------------------------------------------------
