@@ -188,7 +188,7 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
 
     df_weather = df[df['Weather Description'].isin(weather_sel)]
 
-    # Bubble chart data: group by hour × weather
+    # Bubble chart data
     bubble_data = (
         df_weather.groupby(['hour', 'Weather Description'])
         .agg(
@@ -199,8 +199,10 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
     )
     bubble_data['% Injury'] = bubble_data['injury_count'] / bubble_data['accident_count']
 
-    weather_select = alt.selection_point(fields=['Weather Description'])
+    # Shared selection by hour
+    hour_select = alt.selection_point(fields=['hour'])
 
+    # Top: Bubble chart with hour selector
     bubble_chart = (
         alt.Chart(bubble_data)
         .mark_circle()
@@ -211,12 +213,12 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
             color=alt.Color('% Injury:Q', scale=alt.Scale(scheme='oranges'), legend=alt.Legend(title='% Injury')),
             tooltip=[
                 alt.Tooltip('hour:O', title='Hour'),
-                alt.Tooltip('Weather Description:N', title='Weather'),
-                alt.Tooltip('accident_count:Q', title='Accidents'),
-                alt.Tooltip('% Injury:Q', format='.1%', title='% with Injury')
+                alt.Tooltip('Weather Description:N'),
+                alt.Tooltip('accident_count:Q', title='Crashes'),
+                alt.Tooltip('% Injury:Q', format='.1%', title='% Injury')
             ]
         )
-        .add_params(weather_select)
+        .add_params(hour_select)
         .properties(
             width=800,
             height=300,
@@ -224,9 +226,10 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
         )
     )
 
-    # Bar chart: severity breakdown per weather
-    sev_df = (
-        df_weather.groupby('Weather Description')
+    # Bar chart data
+    df_weather['hour'] = df_weather['Date and Time'].dt.hour
+    bar_data = (
+        df_weather.groupby(['hour', 'Weather Description'])
         .agg(
             total_acc=('Weather Description', 'count'),
             inj=('has_injury', 'sum'),
@@ -234,42 +237,40 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
         )
         .reset_index()
     )
-    sev_df['% with Injury'] = sev_df['inj'] / sev_df['total_acc'] * 100
-    sev_df['% with Fatality'] = sev_df['fat'] / sev_df['total_acc'] * 100
+    bar_data['% with Injury'] = bar_data['inj'] / bar_data['total_acc'] * 100
+    bar_data['% with Fatality'] = bar_data['fat'] / bar_data['total_acc'] * 100
 
-    sev_melt = sev_df.melt(
-        id_vars=['Weather Description'],
+    # Bar chart for all weather types, highlight if same hour is selected
+    sev_melt = bar_data.melt(
+        id_vars=['hour', 'Weather Description'],
         value_vars=['% with Injury', '% with Fatality'],
         var_name='Severity Type',
         value_name='Percentage'
     )
 
-    bar_chart = (
-        alt.Chart(sev_melt)
-        .transform_filter(weather_select)
-        .mark_bar()
-        .encode(
-            x=alt.X('Weather Description:N', sort='-y'),
-            y=alt.Y('Percentage:Q'),
-            color=alt.Color('Severity Type:N',
-                            scale=alt.Scale(
-                                domain=['% with Injury', '% with Fatality'],
-                                range=['orange', 'crimson'])),
-            tooltip=['Weather Description', 'Severity Type',
-                     alt.Tooltip('Percentage:Q', format='.1f')]
-        )
-        .properties(
-            title='Proportion of Accidents with Injuries or Fatalities',
-            width=800,
-            height=320
-        )
+    base_bar = alt.Chart(sev_melt).encode(
+        x=alt.X('Weather Description:N', sort='-y',
+                axis=alt.Axis(labelAngle=-35, labelOverlap=False)),
+        y=alt.Y('Percentage:Q'),
+        color=alt.Color('Severity Type:N',
+                        scale=alt.Scale(
+                            domain=['% with Injury', '% with Fatality'],
+                            range=['orange', 'crimson']))
+    )
+
+    bar = (
+        base_bar.mark_bar(opacity=0.3) +
+        base_bar.mark_bar(opacity=1.0).transform_filter(hour_select)
+    ).properties(
+        width=800,
+        height=350,
+        title='Severity Breakdown Across Weather (Highlighting Selected Hour)'
     )
 
     st.altair_chart(
-        alt.vconcat(bubble_chart, bar_chart).resolve_scale(color='independent'),
+        alt.vconcat(bubble_chart, bar).resolve_scale(color='independent'),
         use_container_width=True
     )
-
 
 
 
