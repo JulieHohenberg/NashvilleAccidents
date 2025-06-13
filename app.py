@@ -181,14 +181,14 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
     top_weather = df['Weather Description'].value_counts().nlargest(8).index.tolist()
     weather_sel_bar = st.multiselect(
         "Weather Condition(s)",
-        options=list(top_weather),
-        default=list(top_weather),
+        options=top_weather,
+        default=top_weather,
         key="weather_sel_bar"
     )
 
     df_weather_bar = df[df['Weather Description'].isin(weather_sel_bar)]
 
-    # Preprocess for total + severity stats
+    # Grouping
     sev_df = (
         df_weather_bar.groupby('Weather Description')
         .agg(
@@ -201,18 +201,18 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
     sev_df['% with Injury'] = sev_df['inj'] / sev_df['total_acc'] * 100
     sev_df['% with Fatality'] = sev_df['fat'] / sev_df['total_acc'] * 100
 
-    # Melt for bar chart
+    # Add melt before selection so both charts share this data object
     sev_melt = sev_df.melt(
-        id_vars='Weather Description',
+        id_vars=['Weather Description'],
         value_vars=['% with Injury', '% with Fatality'],
         var_name='Severity Type',
         value_name='Percentage'
     )
 
-    # Selection interaction
-    weather_select = alt.selection_point(fields=['Weather Description'], toggle=True, clear='click')
+    # Define selection on 'Weather Description'
+    weather_select = alt.selection_point(fields=['Weather Description'])
 
-    # Scatterplot – Total accidents
+    # Scatterplot
     scatter = (
         alt.Chart(sev_df)
         .mark_circle(size=200)
@@ -230,7 +230,7 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
         )
     )
 
-    # Bar chart – Severity proportions, filtered by selection
+    # Bar chart, filtered with the selection
     bar = (
         alt.Chart(sev_melt)
         .transform_filter(weather_select)
@@ -253,11 +253,12 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
         )
     )
 
-    # Combine and show
+    # Show charts together
     st.altair_chart(
         alt.vconcat(scatter, bar).resolve_scale(color='independent'),
         use_container_width=True
     )
+
 
 
 #-------------------------------------------------------------------------------------------------#
