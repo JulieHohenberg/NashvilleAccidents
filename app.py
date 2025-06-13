@@ -188,30 +188,45 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
 
     df_weather_bar = df[df['Weather Description'].isin(weather_sel_bar)]
 
-    # Selection object
-    weather_select = alt.selection_point(fields=['Weather Description'], toggle=True, clear='click')
+    # Aggregate data for bubble chart
+    agg = (
+        df_weather_bar.groupby(['hour', 'Weather Description'])
+        .agg(
+            count=('has_injury', 'size'),
+            inj=('has_injury', 'sum')
+        )
+        .reset_index()
+    )
+    agg['% Injuries'] = agg['inj'] / agg['count']
 
-    # Scatterplot: Each point is a crash, by hour vs weather
+    # Define selection
+    weather_select = alt.selection_point(fields=['Weather Description'])
+
+    # Bubble chart (aggregated)
     scatter = (
-        alt.Chart(df_weather_bar)
-        .mark_circle(size=40, opacity=0.4)
+        alt.Chart(agg)
+        .mark_circle()
         .encode(
-            x=alt.X('hour:Q', bin=alt.Bin(maxbins=24), title='Hour of Day'),
+            x=alt.X('hour:Q', title='Hour of Day'),
             y=alt.Y('Weather Description:N', sort=top_weather),
-            color=alt.Color('has_injury:N',
-                            scale=alt.Scale(domain=[True, False], range=['crimson', 'lightgray']),
-                            title='Injury'),
-            tooltip=['Date and Time', 'Weather Description', 'Number of Injuries', 'Number of Fatalities']
+            size=alt.Size('count:Q', scale=alt.Scale(range=[0, 500]), legend=alt.Legend(title='Accident Count')),
+            color=alt.Color('% Injuries:Q', scale=alt.Scale(scheme='reds'), legend=alt.Legend(title='% with Injury')),
+            tooltip=[
+                'hour',
+                'Weather Description',
+                alt.Tooltip('count:Q', title='Accident Count'),
+                alt.Tooltip('% Injuries:Q', format='.1%', title='% with Injury')
+            ]
         )
         .add_params(weather_select)
         .properties(
-            title='When Do Accidents Happen? (Filtered by Weather)',
+            title='Crash Frequency and Injury Rate by Hour and Weather',
             width=800,
-            height=250
+            height=300
         )
     )
 
-    # Build severity summary for selected weather
+    # Prepare bar chart (severity breakdown)
     sev_df = (
         df_weather_bar.groupby('Weather Description')
         .agg(
@@ -231,7 +246,6 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
         value_name='Percentage'
     )
 
-    # Bar chart filtered by weather click
     bar = (
         alt.Chart(sev_melt)
         .transform_filter(weather_select)
@@ -240,8 +254,9 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
             x=alt.X('Weather Description:N', sort='-y'),
             y=alt.Y('Percentage:Q'),
             color=alt.Color('Severity Type:N',
-                            scale=alt.Scale(domain=['% with Injury', '% with Fatality'],
-                                            range=['orange', 'crimson'])),
+                            scale=alt.Scale(
+                                domain=['% with Injury', '% with Fatality'],
+                                range=['orange', 'crimson'])),
             tooltip=['Weather Description', 'Severity Type',
                      alt.Tooltip('Percentage:Q', format='.1f')]
         )
@@ -252,10 +267,12 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
         )
     )
 
+    # Combine and show
     st.altair_chart(
         alt.vconcat(scatter, bar).resolve_scale(color='independent'),
         use_container_width=True
     )
+
 
 
 
