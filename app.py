@@ -88,10 +88,13 @@ st.markdown(
 )
 
 st.markdown("""
-### How does the weather impact the frequency and severity of accidents?
+### When the Skies Turn Dangerous
 
-Is a rainy day more dangerous than a foggy morning? In this section, you can filter accident data by weather condition to explore how the **frequency** of accidents and their **severity** change under different skies.
+Nashville drivers don’t just battle traffic — they battle the elements. But which conditions actually lead to more crashes?
+
+Let’s begin with a big-picture look: how common are accidents during different weather types? The chart below lets you explore this, and you can click any weather type to dig deeper into how dangerous it really is.
 """)
+
 
 
 #top_weather = df['Weather Description'].value_counts().nlargest(8).index
@@ -209,11 +212,11 @@ st.markdown(
 )
 
 st.markdown("""
-### How does lighting, in combination with weather, affect accident severity?
+### The Perfect Storm?
 
-Rain might be bad, but rain **at night** could be worse.
+Rain might be dangerous. Darkness might be dangerous. But what happens when they combine?
 
-Here, we explore how **weather** and **lighting** interact. Does poor visibility amplify danger? Adjust the filters to explore combinations and examine the average injuries or fatalities.
+This next section explores how **lighting conditions** and **weather** interact to influence crash outcomes. Use the dropdowns to filter for different combinations, and ask: does visibility amplify danger?
 """)
 
 
@@ -325,15 +328,15 @@ st.markdown(
 )
 
 st.markdown("""
-### How do time and day affect accident frequency?
+### Not All Hours Are Equal
 
-Not all hours are created equal. Some times of day—and some days of the week—are hotspots for accidents.
+Morning commutes, late-night drives, weekend errands — when are accidents most likely to strike?
 
-This section explores accident **timing patterns**, and how different **collision types** become more or less common depending on the **day and hour**.
+This section dives into the **time of day** and **day of week** patterns in Nashville’s crashes. Start by clicking any square in the heatmap to see which times are most accident-prone.
 """)
 
 with st.expander("Click to explore temporal patterns & collision types", expanded=False):
-
+    st.markdown("The bar chart below updates based on your selection. It reveals which **collision types** are most frequent at the times you choose. You might uncover patterns — like rear-end collisions spiking during morning commutes, or more severe crashes on weekend nights.")
     st.markdown(
         "Click a cell in the grid to filter the bar chart below by day and hour. "
         "**Clicking another cell** adds cells. **Triple-click** anywhere in the grid to reset."
