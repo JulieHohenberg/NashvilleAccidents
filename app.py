@@ -4,7 +4,7 @@ import os, streamlit as st, pandas as pd, numpy as np, altair as alt, pydeck as 
 #-------------------------------------------------------------------------------------------------#
 # Load CSV (cached) ------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------#
-DATA_PATH = "data/nashville_accidents.csv"
+DATA_PATH = "sampled_nashville_accidents.csv"
 
 @st.cache_data
 def load_sample_csv(path_or_buf, sample_size=10000, seed=42) -> pd.DataFrame:
