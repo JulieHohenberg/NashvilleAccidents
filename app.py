@@ -176,7 +176,7 @@ Let’s begin with a big-picture look: how common are accidents during different
 #-------------------------------------------------------------------------------------------------#
 # Bar chart  (filtered **only** by Weather)
 #-------------------------------------------------------------------------------------------------#
-#======================== 1️⃣ WEATHER-ONLY ANALYSIS (BAR CHART) ================================#
+#======================== 1️⃣ WEATHER-ONLY ANALYSIS (SCATTER & BAR CHARTS) ================================#
 with st.expander("Click to explore weather-based accident analysis", expanded=False):
     top_weather = df['Weather Description'].value_counts().nlargest(8).index.tolist()
     weather_sel_bar = st.multiselect(
@@ -188,52 +188,7 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
 
     df_weather_bar = df[df['Weather Description'].isin(weather_sel_bar)]
 
-    # Further sample down to reduce Vega data load
-    max_chart_rows = 500  # absolute cap
-    df_weather_bar_small = df_weather_bar.sample(n=min(max_chart_rows, len(df_weather_bar)), random_state=42)
-
-    # Bin hours into chunks
-    hour_bins = pd.cut(df_weather_bar_small['hour'], bins=[-1, 3, 7, 11, 15, 19, 24],
-                       labels=['12am–4am', '4am–8am', '8am–12pm', '12pm–4pm', '4pm–8pm', '8pm–12am'])
-    df_weather_bar_small['hour_bin'] = hour_bins
-
-    # Aggregate data for scatter
-    agg = (
-        df_weather_bar_small.groupby(['hour_bin', 'Weather Description'])
-        .agg(
-            count=('has_injury', 'size'),
-            inj=('has_injury', 'sum')
-        )
-        .reset_index()
-    )
-    agg['% Injuries'] = agg['inj'] / agg['count']
-
-    weather_select = alt.selection_point(fields=['Weather Description'])
-
-    scatter = (
-        alt.Chart(agg)
-        .mark_circle()
-        .encode(
-            x=alt.X('hour_bin:N', title='Time of Day'),
-            y=alt.Y('Weather Description:N', sort=top_weather),
-            size=alt.Size('count:Q', scale=alt.Scale(range=[10, 300]), legend=None),
-            color=alt.Color('% Injuries:Q', scale=alt.Scale(scheme='oranges'), legend=alt.Legend(title='% Injury')),
-            tooltip=[
-                'hour_bin:N',
-                'Weather Description:N',
-                alt.Tooltip('count:Q', title='Crashes'),
-                alt.Tooltip('% Injuries:Q', format='.1%', title='% Injuries')
-            ]
-        )
-        .add_params(weather_select)
-        .properties(
-            title='Crash Frequency and Injury Rate by Time of Day and Weather',
-            width=700,
-            height=280
-        )
-    )
-
-    # Severity bar chart
+    # Grouping for bar chart
     sev_df = (
         df_weather_bar.groupby('Weather Description')
         .agg(
@@ -253,12 +208,44 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
         value_name='Percentage'
     )
 
+    # Group by hour and weather for scatter plot
+    hour_weather = (
+        df_weather_bar.groupby(['hour', 'Weather Description'])
+        .size()
+        .reset_index(name='accident_count')
+    )
+
+    weather_select = alt.selection_point(fields=['Weather Description'])
+
+    scatter = (
+        alt.Chart(hour_weather)
+        .mark_circle()
+        .encode(
+            x=alt.X('hour:O', title='Hour of Day'),
+            y=alt.Y('Weather Description:N', sort=top_weather),
+            size=alt.Size('accident_count:Q', scale=alt.Scale(range=[0, 500]), legend=None),
+            color=alt.Color('accident_count:Q', scale=alt.Scale(scheme='blues'), legend=alt.Legend(title='Accident Count')),
+            tooltip=[
+                alt.Tooltip('hour:O', title='Hour'),
+                alt.Tooltip('Weather Description:N', title='Weather'),
+                alt.Tooltip('accident_count:Q', title='Accidents')
+            ]
+        )
+        .add_params(weather_select)
+        .properties(
+            width=800,
+            height=300,
+            title='Hourly Crash Frequency by Weather Condition'
+        )
+    )
+
     bar = (
         alt.Chart(sev_melt)
         .transform_filter(weather_select)
         .mark_bar()
         .encode(
-            x=alt.X('Weather Description:N', sort='-y'),
+            x=alt.X('Weather Description:N', sort='-y',
+                    axis=alt.Axis(labelAngle=-35, labelOverlap=False)),
             y=alt.Y('Percentage:Q'),
             color=alt.Color('Severity Type:N',
                             scale=alt.Scale(
@@ -268,9 +255,9 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
                      alt.Tooltip('Percentage:Q', format='.1f')]
         )
         .properties(
-            title='Proportion of Accidents with Injuries or Fatalities',
-            width=700,
-            height=320
+            width=800,
+            height=400,
+            title='Proportion of Accidents with Injuries or Fatalities'
         )
     )
 
