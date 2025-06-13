@@ -68,7 +68,7 @@ Every day, drivers in Nashville face a range of environmental challenges—from 
 
 This dashboard walks you through an exploratory journey of traffic accident patterns, helping you uncover how **weather**, **lighting**, and **timing** affect accident **frequency** and **severity**.
 
-Let's start by examining weather conditions.
+Let's start by examining where these accidents occur.
 """)
 ####################### MAP ##################################################3
 # Filter to valid lat/long range for Nashville
@@ -76,7 +76,7 @@ df = df[(df['Lat'] >= 36.0) & (df['Lat'] <= 36.4) &
         (df['Long'] >= -87.0) & (df['Long'] <= -86.5)]
 
 st.markdown("""
-### Where Are Crashes Happening Most?
+### 📍 Where Are Crashes Happening Most?
 
 Before diving into what causes crashes, let’s look at **where** they occur. The map below shows accident hot spots across the Nashville area. Darker colors mean more accidents.
 
