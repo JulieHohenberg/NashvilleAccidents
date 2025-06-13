@@ -18,58 +18,7 @@ else:
     if up is None: st.stop()
     df = load_csv(up)
 ################map trial############################
-# ─────────────────── 1.  SAMPLE (keeps message size < 200 MB) ────────────────────
-import pydeck as pdk
-import numpy as np
 
-##############################################
-# 1.  THIN OUT THE DATA (hard cap at 50 k)   #
-##############################################
-MAX_POINTS = 50_000           # tune until it feels snappy
-df_sampled = (
-    df.sample(n=MAX_POINTS, random_state=42)
-    if len(df) > MAX_POINTS
-    else df
-)
-
-##############################################
-# 2.  VIEW SETTINGS                          #
-##############################################
-midpoint = (np.average(df_sampled["Lat"]), np.average(df_sampled["Long"]))
-view_state = pdk.ViewState(
-    latitude=midpoint[0],
-    longitude=midpoint[1],
-    zoom=11,
-    pitch=0,                 # 0° pitch costs less GPU than 40°
-)
-
-##############################################
-# 3.  HEXAGON LAYER (GPU aggregation)        #
-##############################################
-hex_layer = pdk.Layer(
-    "HexagonLayer",
-    data=df_sampled,
-    get_position='[Long, Lat]',
-    radius=150,              # smaller → more bins, larger → fewer bins
-    elevation_scale=30,      # 0 disables 3-D columns
-    extruded=False,          # False = 2-D → faster
-    elevation_range=[0, 100],
-    coverage=1,
-    pickable=True,
-    auto_highlight=True,     # subtle hover highlight
-)
-
-deck = pdk.Deck(
-    layers=[hex_layer],
-    initial_view_state=view_state,
-    map_style="mapbox://styles/mapbox/streets-v11",
-    tooltip={"html": "<b>Accidents:</b> {point_count}", "style": {"font-size": "12px"}},
-)
-
-##############################################
-# 4.  RENDER                                 #
-##############################################
-st.pydeck_chart(deck)
 
 ############################### map trial##########################################
 #-------------------------------------------------------------------------------------------------#
