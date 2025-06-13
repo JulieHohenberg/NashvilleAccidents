@@ -17,7 +17,47 @@ else:
     up = st.file_uploader("📂 Upload CSV", type="csv")
     if up is None: st.stop()
     df = load_csv(up)
+################map trial############################
+import pydeck as pdk
 
+# Optional: focus map on average lat/long center
+midpoint = (np.average(df["Lat"]), np.average(df["Long"]))
+
+st.markdown("""
+### Where Are Crashes Happening Most?
+
+Before diving into what causes crashes, let’s look at **where** they occur. The map below shows accident hot spots across the Nashville area.
+
+Use your mouse to zoom and pan around the map to explore clusters.
+""")
+
+# Create the PyDeck heatmap layer
+heatmap_layer = pdk.Layer(
+    "HeatmapLayer",
+    data=df,
+    get_position='[Long, Lat]',
+    get_weight=1,
+    radius=200,
+    threshold=0.1,
+    aggregation=pdk.types.String("MEAN"),
+)
+
+# Render the PyDeck map
+view_state = pdk.ViewState(
+    latitude=midpoint[0],
+    longitude=midpoint[1],
+    zoom=11,
+    pitch=40,
+)
+
+r = pdk.Deck(
+    layers=[heatmap_layer],
+    initial_view_state=view_state,
+    map_style="mapbox://styles/mapbox/light-v9"  # You can change style here
+)
+
+st.pydeck_chart(r)
+############################### map trial##########################################
 #-------------------------------------------------------------------------------------------------#
 # Basic preprocessing ----------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------#
