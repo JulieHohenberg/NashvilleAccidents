@@ -78,15 +78,14 @@ Use your mouse to **zoom** and **pan** around the map to explore different neigh
 # Create zoom/pan interactivity
 zoom = alt.selection_interval(bind='scales')
 
-# Heatmap
+# 1️⃣ Base heatmap with bins (no tooltips)
 heatmap = (
     alt.Chart(df_sample)
     .mark_rect()
     .encode(
         x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
         y=alt.Y('Lat:Q', bin=alt.Bin(maxbins=60), title='Latitude'),
-        color=alt.Color('count():Q', scale=alt.Scale(scheme='reds'), title='Accident Count'),
-        tooltip=[alt.Tooltip('count():Q', title='Accidents')]
+        color=alt.Color('count():Q', scale=alt.Scale(scheme='reds'), title='Accident Count')
     )
     .add_params(zoom)
     .properties(
@@ -94,10 +93,29 @@ heatmap = (
         width=650,
         height=500
     )
-    .configure_axisX(labelAngle=0)
 )
 
-st.altair_chart(heatmap, use_container_width=True)
+# 2️⃣ Tooltip layer (sampled for performance)
+tooltip_layer = (
+    alt.Chart(df_sample)
+    .mark_circle(size=20, opacity=0.6, color='black')
+    .encode(
+        x='Long:Q',
+        y='Lat:Q',
+        tooltip=[
+            alt.Tooltip('Number of Injuries:Q'),
+            alt.Tooltip('Number of Fatalities:Q'),
+            alt.Tooltip('Location:N') if location_col else alt.Tooltip('Lat:Q'),
+            alt.Tooltip('Long:Q'),
+        ]
+    )
+    .add_params(zoom)
+)
+
+# 3️⃣ Combine both
+final_map = (heatmap + tooltip_layer).configure_axisX(labelAngle=0)
+
+st.altair_chart(final_map, use_container_width=True)
 
 #############################################################################################################################
 
