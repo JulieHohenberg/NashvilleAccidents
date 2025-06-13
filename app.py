@@ -55,7 +55,7 @@ st.markdown(
         </h1>
         <h3 style="font-family: 'Segoe UI', sans-serif; font-weight: normal; color: #444; line-height: 1.5; max-width: 800px; margin: 0 auto;">
             Uncovering the Patterns Behind the Wheel:<br>
-            How Weather, Light, Time, and Place <br>Interact to Shape Crash Risk in Nashville
+            How Weather, Light, Time, and Place Interact to Shape Crash Risk in Nashville
         </h3>
     </div>
     """,
