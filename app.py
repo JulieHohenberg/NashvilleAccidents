@@ -4,30 +4,19 @@ import os, streamlit as st, pandas as pd, numpy as np, altair as alt, pydeck as 
 #-------------------------------------------------------------------------------------------------#
 # Load CSV (cached) ------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------#
-# Try full CSV first; fallback to sample
-FULL_PATH = "data/nashville_accidents.csv"
-SAMPLE_PATH = "data/nashville_accidents_sample.csv"
+DATA_PATH = "data/nashville_accidents.csv"
 
 @st.cache_data
 def load_csv(path_or_buf) -> pd.DataFrame:
     return pd.read_csv(path_or_buf)
 
-# Choose file to load
-if os.path.exists(FULL_PATH):
-    DATA_PATH = FULL_PATH
-    st.info("Using full dataset.")
-elif os.path.exists(SAMPLE_PATH):
-    DATA_PATH = SAMPLE_PATH
-    st.warning("Full dataset not found. Using 5,000-row sample instead.")
+if os.path.exists(DATA_PATH):
+    df = load_csv(DATA_PATH)
 else:
-    st.error("No dataset found. Please upload one.")
-    uploaded = st.file_uploader("📂 Upload CSV", type="csv")
-    if uploaded is None:
-        st.stop()
-    DATA_PATH = uploaded
-
-# Load it
-df = load_csv(DATA_PATH)
+    st.warning("`nashville_accidents.csv` not found – upload it below.")
+    up = st.file_uploader("📂 Upload CSV", type="csv")
+    if up is None: st.stop()
+    df = load_csv(up)
 
 #-------------------------------------------------------------------------------------------------#
 # Basic preprocessing ----------------------------------------------------------------------------
@@ -89,14 +78,15 @@ Use your mouse to **zoom** and **pan** around the map to explore different neigh
 # Create zoom/pan interactivity
 zoom = alt.selection_interval(bind='scales')
 
-# 1️⃣ Base heatmap with bins (no tooltips)
+# Heatmap
 heatmap = (
     alt.Chart(df_sample)
     .mark_rect()
     .encode(
         x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
         y=alt.Y('Lat:Q', bin=alt.Bin(maxbins=60), title='Latitude'),
-        color=alt.Color('count():Q', scale=alt.Scale(scheme='reds'), title='Accident Count')
+        color=alt.Color('count():Q', scale=alt.Scale(scheme='reds'), title='Accident Count'),
+        tooltip=[alt.Tooltip('count():Q', title='Accidents')]
     )
     .add_params(zoom)
     .properties(
@@ -104,29 +94,10 @@ heatmap = (
         width=650,
         height=500
     )
+    .configure_axisX(labelAngle=0)
 )
 
-# 2️⃣ Tooltip layer (sampled for performance)
-tooltip_layer = (
-    alt.Chart(df_sample)
-    .mark_circle(size=20, opacity=0.6, color='black')
-    .encode(
-        x='Long:Q',
-        y='Lat:Q',
-        tooltip=[
-            alt.Tooltip('Number of Injuries:Q'),
-            alt.Tooltip('Number of Fatalities:Q'),
-            alt.Tooltip('Location:N') if location_col else alt.Tooltip('Lat:Q'),
-            alt.Tooltip('Long:Q'),
-        ]
-    )
-    .add_params(zoom)
-)
-
-# 3️⃣ Combine both
-final_map = (heatmap + tooltip_layer).configure_axisX(labelAngle=0)
-
-st.altair_chart(final_map, use_container_width=True)
+st.altair_chart(heatmap, use_container_width=True)
 
 #############################################################################################################################
 
@@ -303,7 +274,7 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
         key="weather_sel_heat",
     )
 
-    # Lighting filter:
+    # Lighting filter
     top_illum = df['Illumination Description'].value_counts().nlargest(6).index
     illum_sel = st.multiselect(
         "Lighting Condition(s)",
