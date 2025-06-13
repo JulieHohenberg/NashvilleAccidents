@@ -61,7 +61,7 @@ st.markdown(
 )
 
 st.markdown("""
-### 🚗 Setting the Stage
+### Setting the Stage
 
 Every day, drivers in Nashville face a range of environmental challenges—from foggy mornings to poorly lit roads at night. But which conditions are most dangerous? When are accidents most likely to occur?
 
@@ -88,7 +88,7 @@ st.markdown(
 
 st.markdown("""
 ---
-### 🌤️ Weather and Crash Severity
+### Weather and Crash Severity
 
 Is a rainy day more dangerous than a foggy morning? In this section, you can filter accident data by weather condition to explore how the **frequency** of accidents and their **severity** change under different skies.
 """)
@@ -209,7 +209,7 @@ st.markdown(
 
 st.markdown("""
 ---
-### 🌘 Lighting Conditions Compound Risk
+### Lighting Conditions Compound Risk
 
 Rain might be bad, but rain **at night** could be worse.
 
@@ -325,7 +325,7 @@ st.markdown(
 
 st.markdown("""
 ---
-### 🕒 Timing is Everything
+### Timing is Everything
 
 Not all hours are created equal. Some times of day—and some days of the week—are hotspots for accidents.
 
