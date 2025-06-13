@@ -144,7 +144,7 @@ st.altair_chart(
     use_container_width=True
 )
 
-    )
+    
 
     df_weather_bar = df[df['Weather Description'].isin(weather_sel_bar)]
 
