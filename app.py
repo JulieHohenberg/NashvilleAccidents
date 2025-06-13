@@ -60,6 +60,17 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+st.markdown("""
+### 🚗 Setting the Stage
+
+Every day, drivers in Nashville face a range of environmental challenges—from foggy mornings to poorly lit roads at night. But which conditions are most dangerous? When are accidents most likely to occur?
+
+This dashboard walks you through an exploratory journey of traffic accident patterns, helping you uncover how **weather**, **lighting**, and **timing** affect accident **frequency** and **severity**.
+
+Let's start by examining weather conditions.
+""")
+
+
 #-------------------------------------------------------------------------------------------------#
 # Weather filter  (applies to *both* charts) 
 #-------------------------------------------------------------------------------------------------#
@@ -74,6 +85,14 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+st.markdown("""
+---
+### 🌤️ Weather and Crash Severity
+
+Is a rainy day more dangerous than a foggy morning? In this section, you can filter accident data by weather condition to explore how the **frequency** of accidents and their **severity** change under different skies.
+""")
+
 
 #top_weather = df['Weather Description'].value_counts().nlargest(8).index
 #weather_sel = st.multiselect("Weather Condition(s)",
@@ -188,6 +207,16 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+st.markdown("""
+---
+### 🌘 Lighting Conditions Compound Risk
+
+Rain might be bad, but rain **at night** could be worse.
+
+Here, we explore how **weather** and **lighting** interact. Does poor visibility amplify danger? Adjust the filters to explore combinations and examine the average injuries or fatalities.
+""")
+
+
 #======================== 2️⃣ WEATHER × LIGHTING ANALYSIS (HEATMAP) ============================#
 with st.expander("Click to explore lighting & weather interaction", expanded=False):
 
@@ -293,6 +322,16 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+st.markdown("""
+---
+### 🕒 Timing is Everything
+
+Not all hours are created equal. Some times of day—and some days of the week—are hotspots for accidents.
+
+This section explores accident **timing patterns**, and how different **collision types** become more or less common depending on the **day and hour**.
+""")
+
 with st.expander("Click to explore temporal patterns & collision types", expanded=False):
 
     st.markdown(
