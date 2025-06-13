@@ -76,6 +76,7 @@ Let's start by examining weather conditions.
 #-------------------------------------------------------------------------------------------------#
 st.markdown(
     """
+    ---
     <div style='display: flex; align-items: center;'>
         <div style='font-size: 80px; margin-right: 20px;'>⛅</div>
         <div style='font-size: 24px;'> <b>
@@ -87,7 +88,6 @@ st.markdown(
 )
 
 st.markdown("""
----
 ### How does the weather impact the frequency and severity of accidents?
 
 Is a rainy day more dangerous than a foggy morning? In this section, you can filter accident data by weather condition to explore how the **frequency** of accidents and their **severity** change under different skies.
@@ -197,6 +197,7 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
 #-------------------------------------------------------------------------------------------------#
 st.markdown(
     """
+    ---
     <div style='display: flex; align-items: center;'>
         <div style='font-size: 80px; margin-right: 20px;'>𓍙</div>
         <div style='font-size: 24px;'><b>
@@ -208,7 +209,6 @@ st.markdown(
 )
 
 st.markdown("""
----
 ### How does lighting, in combination with weather, affect accident severity?
 
 Rain might be bad, but rain **at night** could be worse.
@@ -313,6 +313,7 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
 ########################################################################################
 st.markdown(
     """
+    ---
     <div style='display: flex; align-items: center;'>
         <div style='font-size: 80px; margin-right: 20px;'>🕛</div>
         <div style='font-size: 24px;'> <b>
@@ -324,7 +325,6 @@ st.markdown(
 )
 
 st.markdown("""
----
 ### How do time and day affect accident frequency?
 
 Not all hours are created equal. Some times of day—and some days of the week—are hotspots for accidents.
