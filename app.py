@@ -292,7 +292,7 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
         key="weather_sel_heat",
     )
 
-    # Lighting filter
+    # Lighting filter:
     top_illum = df['Illumination Description'].value_counts().nlargest(6).index
     illum_sel = st.multiselect(
         "Lighting Condition(s)",
