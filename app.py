@@ -67,8 +67,6 @@ st.markdown(
 df = df[(df['Lat'] >= 36.0) & (df['Lat'] <= 36.4) &
         (df['Long'] >= -87.0) & (df['Long'] <= -86.5)]
 
-df_sample = df.sample(frac=0.5, random_state=42)
-
 st.markdown("""
 ### Where Are Crashes Happening Most?
 
@@ -77,29 +75,56 @@ Before diving into what causes crashes, let’s look at **where** they occur. Th
 Use your mouse to **zoom** and **pan** around the map to explore different neighborhoods and clusters.
 """)
 
-# Create zoom/pan interactivity
-zoom = alt.selection_interval(bind='scales')
+# Compute center of the map
+midpoint = (np.average(df["Lat"]), np.average(df["Long"]))
 
-# Heatmap
-heatmap = (
-    alt.Chart(df_sample)
-    .mark_rect()
-    .encode(
-        x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
-        y=alt.Y('Lat:Q', bin=alt.Bin(maxbins=60), title='Latitude'),
-        color=alt.Color('count():Q', scale=alt.Scale(scheme='reds'), title='Accident Count'),
-        tooltip=[alt.Tooltip('count():Q', title='Accidents')]
-    )
-    .add_params(zoom)
-    .properties(
-        title='Heatmap of Accident Clusters in Nashville Area',
-        width=650,
-        height=500
-    )
-    .configure_axisX(labelAngle=0)
+# PyDeck heatmap layer with tooltips
+heatmap_layer = pdk.Layer(
+    "HeatmapLayer",
+    data=df,
+    get_position='[Long, Lat]',
+    get_weight=1,
+    radius=200,
+    intensity=0.4,
+    threshold=0.05,
+    pickable=True,
+    colorRange=[
+        [255,255,204],
+        [255,237,160],
+        [254,217,118],
+        [254,178, 76],
+        [253,141, 60],
+        [240, 59, 32],
+    ],
 )
 
-st.altair_chart(heatmap, use_container_width=True)
+# Define map view with zoom/pan enabled
+view_state = pdk.ViewState(
+    latitude=midpoint[0],
+    longitude=midpoint[1],
+    zoom=11,
+    pitch=40,
+    bearing=0,
+)
+
+# Deck object
+deck = pdk.Deck(
+    layers=[heatmap_layer],
+    initial_view_state=view_state,
+    map_style="mapbox://styles/mapbox/streets-v11",
+    tooltip={
+        "html": """
+            <b>Address:</b> {Location} <br/>
+            <b>Injuries:</b> {Number of Injuries} <br/>
+            <b>Fatalities:</b> {Number of Fatalities} <br/>
+            <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
+        """,
+        "style": {"font-size": "12px"},
+    },
+)
+
+# Display in Streamlit
+st.pydeck_chart(deck, use_container_width=True)
 
 #############################################################################################################################
 
