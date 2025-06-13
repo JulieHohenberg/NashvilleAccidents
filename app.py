@@ -149,7 +149,7 @@ st.markdown(
     <div style='display: flex; align-items: center;'>
         <div style='font-size: 80px; margin-right: 20px;'>⛅</div>
         <div style='font-size: 24px;'> <b>
-           Weather and Crash Severity 
+           Weather Patterns and Risky Hours 
         </b></div>
     </div>
     """,
@@ -157,11 +157,11 @@ st.markdown(
 )
 
 st.markdown("""
-### When the Skies Turn Dangerous
+### When Dangerous Conditions and Timing Collide
 
-Nashville drivers don’t just battle traffic — they battle the elements. But which conditions actually lead to more crashes?
+Not all weather is equally dangerous — and neither is every hour of the day. When do accidents spike, and under what skies?
 
-Let’s begin with a big-picture look: how common are accidents during different weather types? The chart below lets you explore this, and you can click any weather type to dig deeper into how dangerous it really is.
+The scatterplot below helps you uncover patterns in injury rates by hour and weather type. Each bubble shows how frequent and severe accidents are.
 """)
 
 
@@ -177,7 +177,7 @@ Let’s begin with a big-picture look: how common are accidents during different
 # Bar chart  (filtered **only** by Weather)
 #-------------------------------------------------------------------------------------------------#
 #======================== 1️⃣ WEATHER-ONLY ANALYSIS (SCATTER & BAR CHARTS) ================================#
-with st.expander("Click to explore weather-based accident analysis", expanded=False):
+with st.expander("Click a bubble to reveal how that hour compares across weather types in overall crash volume.", expanded=False):
     top_weather = df['Weather Description'].value_counts().nlargest(8).index.tolist()
     weather_sel = st.multiselect(
         "Weather Condition(s)",
