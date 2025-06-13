@@ -188,7 +188,30 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
 
     df_weather_bar = df[df['Weather Description'].isin(weather_sel_bar)]
 
-    # Grouping
+    # Selection object
+    weather_select = alt.selection_point(fields=['Weather Description'], toggle=True, clear='click')
+
+    # Scatterplot: Each point is a crash, by hour vs weather
+    scatter = (
+        alt.Chart(df_weather_bar)
+        .mark_circle(size=40, opacity=0.4)
+        .encode(
+            x=alt.X('hour:Q', bin=alt.Bin(maxbins=24), title='Hour of Day'),
+            y=alt.Y('Weather Description:N', sort=top_weather),
+            color=alt.Color('has_injury:N',
+                            scale=alt.Scale(domain=[True, False], range=['crimson', 'lightgray']),
+                            title='Injury'),
+            tooltip=['Date and Time', 'Weather Description', 'Number of Injuries', 'Number of Fatalities']
+        )
+        .add_params(weather_select)
+        .properties(
+            title='When Do Accidents Happen? (Filtered by Weather)',
+            width=800,
+            height=250
+        )
+    )
+
+    # Build severity summary for selected weather
     sev_df = (
         df_weather_bar.groupby('Weather Description')
         .agg(
@@ -201,7 +224,6 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
     sev_df['% with Injury'] = sev_df['inj'] / sev_df['total_acc'] * 100
     sev_df['% with Fatality'] = sev_df['fat'] / sev_df['total_acc'] * 100
 
-    # Add melt before selection so both charts share this data object
     sev_melt = sev_df.melt(
         id_vars=['Weather Description'],
         value_vars=['% with Injury', '% with Fatality'],
@@ -209,55 +231,32 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
         value_name='Percentage'
     )
 
-    # Define selection on 'Weather Description'
-    weather_select = alt.selection_point(fields=['Weather Description'])
-
-    # Scatterplot
-    scatter = (
-        alt.Chart(sev_df)
-        .mark_circle(size=200)
-        .encode(
-            x=alt.X('Weather Description:N', sort='-y'),
-            y=alt.Y('total_acc:Q', title='Total Accidents'),
-            color=alt.Color('total_acc:Q', scale=alt.Scale(scheme='blues')),
-            tooltip=['Weather Description', 'total_acc']
-        )
-        .add_params(weather_select)
-        .properties(
-            width=800,
-            height=220,
-            title='Total Accidents by Weather Type'
-        )
-    )
-
-    # Bar chart, filtered with the selection
+    # Bar chart filtered by weather click
     bar = (
         alt.Chart(sev_melt)
         .transform_filter(weather_select)
         .mark_bar()
         .encode(
-            x=alt.X('Weather Description:N', sort='-y',
-                    axis=alt.Axis(labelAngle=-35, labelOverlap=False)),
+            x=alt.X('Weather Description:N', sort='-y'),
             y=alt.Y('Percentage:Q'),
             color=alt.Color('Severity Type:N',
-                            scale=alt.Scale(
-                                domain=['% with Injury', '% with Fatality'],
-                                range=['orange', 'crimson'])),
+                            scale=alt.Scale(domain=['% with Injury', '% with Fatality'],
+                                            range=['orange', 'crimson'])),
             tooltip=['Weather Description', 'Severity Type',
                      alt.Tooltip('Percentage:Q', format='.1f')]
         )
         .properties(
+            title='Proportion of Accidents with Injuries or Fatalities',
             width=800,
-            height=400,
-            title='Proportion of Accidents with Injuries or Fatalities'
+            height=400
         )
     )
 
-    # Show charts together
     st.altair_chart(
         alt.vconcat(scatter, bar).resolve_scale(color='independent'),
         use_container_width=True
     )
+
 
 
 
