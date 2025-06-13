@@ -54,7 +54,7 @@ st.markdown(
             Weathering the Road
         </h1>
         <h3 style="font-family: 'Segoe UI', sans-serif; font-weight: normal; color: #444;">
-            Uncovering the Patterns Behind the Wheel: How Weather, Light, Time, and Place<br>
+            Uncovering the Patterns Behind the Wheel: How Weather, Light, Time, and Place
             Interact to Shape Crash Risk in Nashville
         </h3>
     </div>
