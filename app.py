@@ -88,8 +88,8 @@ st.markdown(
 #======================== 1️⃣ WEATHER-ONLY ANALYSIS (BAR CHART) ================================#
 with st.expander("Click to explore weather-based accident analysis", expanded=False):
 
-    # Interactive scatterplot selector
-scatter_selector = alt.selection_point(fields=['Weather Description'], toggle=True, clear='click')
+# Interactive scatterplot selector
+    scatter_selector = alt.selection_point(fields=['Weather Description'], toggle=True, clear='click')
 
 # Total accidents per weather type (scatter plot)
 acc_count_chart = (
