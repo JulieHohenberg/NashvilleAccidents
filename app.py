@@ -87,19 +87,17 @@ st.markdown(
 #-------------------------------------------------------------------------------------------------#
 #======================== 1️⃣ WEATHER-ONLY ANALYSIS (BAR CHART) ================================#
 with st.expander("Click to explore weather-based accident analysis", expanded=False):
-
-    # Weather filter (affects this bar chart only)
-    top_weather = df['Weather Description'].value_counts().nlargest(8).index
+    top_weather = df['Weather Description'].value_counts().nlargest(8).index.tolist()
     weather_sel_bar = st.multiselect(
         "Weather Condition(s)",
-        list(top_weather),
+        options=list(top_weather),
         default=list(top_weather),
-        key="weather_sel_bar",
+        key="weather_sel_bar"
     )
 
     df_weather_bar = df[df['Weather Description'].isin(weather_sel_bar)]
 
-    # Build bar-chart data
+    # Preprocess for total + severity stats
     sev_df = (
         df_weather_bar.groupby('Weather Description')
         .agg(
@@ -109,47 +107,67 @@ with st.expander("Click to explore weather-based accident analysis", expanded=Fa
         )
         .reset_index()
     )
-
-    sev_df['% with Injury']   = sev_df['inj'] / sev_df['total_acc'] * 100
+    sev_df['% with Injury'] = sev_df['inj'] / sev_df['total_acc'] * 100
     sev_df['% with Fatality'] = sev_df['fat'] / sev_df['total_acc'] * 100
+
+    # Melt for bar chart
     sev_melt = sev_df.melt(
-        'Weather Description',
-        ['% with Injury', '% with Fatality'],
+        id_vars='Weather Description',
+        value_vars=['% with Injury', '% with Fatality'],
         var_name='Severity Type',
         value_name='Percentage'
     )
 
-    bar_chart = (
-        alt.Chart(sev_melt)
-        .mark_bar()
+    # Selection interaction
+    weather_select = alt.selection_point(fields=['Weather Description'], toggle=True, clear='click')
+
+    # Scatterplot – Total accidents
+    scatter = (
+        alt.Chart(sev_df)
+        .mark_circle(size=200)
         .encode(
-            x=alt.X(
-                'Weather Description:N',
-                sort='-y',
-                axis=alt.Axis(labelAngle=-35, labelOverlap=False)
-            ),
-            y='Percentage:Q',
-            color=alt.Color(
-                'Severity Type:N',
-                scale=alt.Scale(
-                    domain=['% with Injury', '% with Fatality'],
-                    range=['orange', 'crimson']
-                )
-            ),
-            tooltip=[
-                'Weather Description',
-                'Severity Type',
-                alt.Tooltip('Percentage:Q', format='.1f')
-            ]
+            x=alt.X('Weather Description:N', sort='-y'),
+            y=alt.Y('total_acc:Q', title='Total Accidents'),
+            color=alt.Color('total_acc:Q', scale=alt.Scale(scheme='blues')),
+            tooltip=['Weather Description', 'total_acc']
         )
+        .add_params(weather_select)
         .properties(
-            title='Proportion of Accidents with Injuries or Fatalities',
-            height=420,
-            width=800
+            width=800,
+            height=220,
+            title='Total Accidents by Weather Type'
         )
     )
 
-    st.altair_chart(bar_chart, use_container_width=True)
+    # Bar chart – Severity proportions, filtered by selection
+    bar = (
+        alt.Chart(sev_melt)
+        .transform_filter(weather_select)
+        .mark_bar()
+        .encode(
+            x=alt.X('Weather Description:N', sort='-y',
+                    axis=alt.Axis(labelAngle=-35, labelOverlap=False)),
+            y=alt.Y('Percentage:Q'),
+            color=alt.Color('Severity Type:N',
+                            scale=alt.Scale(
+                                domain=['% with Injury', '% with Fatality'],
+                                range=['orange', 'crimson'])),
+            tooltip=['Weather Description', 'Severity Type',
+                     alt.Tooltip('Percentage:Q', format='.1f')]
+        )
+        .properties(
+            width=800,
+            height=400,
+            title='Proportion of Accidents with Injuries or Fatalities'
+        )
+    )
+
+    # Combine and show
+    st.altair_chart(
+        alt.vconcat(scatter, bar).resolve_scale(color='independent'),
+        use_container_width=True
+    )
+
 
 #-------------------------------------------------------------------------------------------------#
 # Illumination filter (below bar chart, affects heat-map only) 
