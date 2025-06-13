@@ -18,10 +18,11 @@ else:
     if up is None: st.stop()
     df = load_csv(up)
 ################map trial############################
-import pydeck as pdk
+# Sample the data to reduce size (adjust the number as needed)
+df_sampled = df.sample(n=100000, random_state=42) if len(df) > 100000 else df
 
-# Optional: focus map on average lat/long center
-midpoint = (np.average(df["Lat"]), np.average(df["Long"]))
+# Compute map center
+midpoint = (np.average(df_sampled["Lat"]), np.average(df_sampled["Long"]))
 
 st.markdown("""
 ### Where Are Crashes Happening Most?
@@ -31,10 +32,10 @@ Before diving into what causes crashes, let’s look at **where** they occur. Th
 Use your mouse to zoom and pan around the map to explore clusters.
 """)
 
-# Create the PyDeck heatmap layer
+# Create PyDeck Heatmap Layer
 heatmap_layer = pdk.Layer(
     "HeatmapLayer",
-    data=df,
+    data=df_sampled,
     get_position='[Long, Lat]',
     get_weight=1,
     radius=200,
@@ -42,7 +43,7 @@ heatmap_layer = pdk.Layer(
     aggregation=pdk.types.String("MEAN"),
 )
 
-# Render the PyDeck map
+# View settings
 view_state = pdk.ViewState(
     latitude=midpoint[0],
     longitude=midpoint[1],
@@ -50,13 +51,14 @@ view_state = pdk.ViewState(
     pitch=40,
 )
 
-r = pdk.Deck(
+# Build deck
+deck = pdk.Deck(
     layers=[heatmap_layer],
     initial_view_state=view_state,
-    map_style="mapbox://styles/mapbox/light-v9"  # You can change style here
+    map_style="mapbox://styles/mapbox/light-v9"
 )
 
-st.pydeck_chart(r)
+st.pydeck_chart(deck)
 ############################### map trial##########################################
 #-------------------------------------------------------------------------------------------------#
 # Basic preprocessing ----------------------------------------------------------------------------
