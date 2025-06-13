@@ -111,7 +111,7 @@ view_state = pdk.ViewState(
 deck = pdk.Deck(
     layers=[heatmap_layer],
     initial_view_state=view_state,
-    map_style="map_style="mapbox://styles/mapbox/satellite-v9"",
+    map_style="mapbox://styles/mapbox/satellite-v9",
     tooltip={
         "html": """
             <b>Address:</b> {Location} <br/>
