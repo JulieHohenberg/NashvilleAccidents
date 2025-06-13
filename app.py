@@ -65,7 +65,7 @@ st.markdown(
 df = df[(df['Lat'] >= 36.0) & (df['Lat'] <= 36.4) &
         (df['Long'] >= -87.0) & (df['Long'] <= -86.5)]
 
-df_sample = df.sample(frac=0.5, random_state) = 42
+df_sample = df.sample(frac=0.5, random_state=42)
 
 st.markdown("""
 ### Where Are Crashes Happening Most?
