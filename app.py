@@ -4,19 +4,30 @@ import os, streamlit as st, pandas as pd, numpy as np, altair as alt, pydeck as 
 #-------------------------------------------------------------------------------------------------#
 # Load CSV (cached) ------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------#
-DATA_PATH = "data/nashville_accidents.csv"
+# Try full CSV first; fallback to sample
+FULL_PATH = "data/nashville_accidents.csv"
+SAMPLE_PATH = "data/nashville_accidents_sample.csv"
 
 @st.cache_data
 def load_csv(path_or_buf) -> pd.DataFrame:
     return pd.read_csv(path_or_buf)
 
-if os.path.exists(DATA_PATH):
-    df = load_csv(DATA_PATH)
+# Choose file to load
+if os.path.exists(FULL_PATH):
+    DATA_PATH = FULL_PATH
+    st.info("Using full dataset.")
+elif os.path.exists(SAMPLE_PATH):
+    DATA_PATH = SAMPLE_PATH
+    st.warning("Full dataset not found. Using 5,000-row sample instead.")
 else:
-    st.warning("`nashville_accidents.csv` not found – upload it below.")
-    up = st.file_uploader("📂 Upload CSV", type="csv")
-    if up is None: st.stop()
-    df = load_csv(up)
+    st.error("No dataset found. Please upload one.")
+    uploaded = st.file_uploader("📂 Upload CSV", type="csv")
+    if uploaded is None:
+        st.stop()
+    DATA_PATH = uploaded
+
+# Load it
+df = load_csv(DATA_PATH)
 
 #-------------------------------------------------------------------------------------------------#
 # Basic preprocessing ----------------------------------------------------------------------------
