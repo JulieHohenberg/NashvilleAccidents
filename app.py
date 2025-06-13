@@ -59,11 +59,13 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-'''
+
 ####################### MAP ##################################################3
 # Filter to valid lat/long range for Nashville
 df = df[(df['Lat'] >= 36.0) & (df['Lat'] <= 36.4) &
         (df['Long'] >= -87.0) & (df['Long'] <= -86.5)]
+
+df_sample = df.sample(frac=0.5, random_state) = 42
 
 st.markdown("""
 ### Where Are Crashes Happening Most?
@@ -78,7 +80,7 @@ zoom = alt.selection_interval(bind='scales')
 
 # Heatmap
 heatmap = (
-    alt.Chart(df)
+    alt.Chart(df_sample)
     .mark_rect()
     .encode(
         x=alt.X('Long:Q', bin=alt.Bin(maxbins=60), title='Longitude'),
@@ -98,7 +100,7 @@ heatmap = (
 st.altair_chart(heatmap, use_container_width=True)
 
 #############################################################################################################################
-'''
+
 
 st.markdown("""
 ### Setting the Stage
