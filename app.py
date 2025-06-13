@@ -61,7 +61,15 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+st.markdown("""
+### Setting the Stage
 
+Every day, drivers in Nashville face a range of environmental challenges—from foggy mornings to poorly lit roads at night. But which conditions are most dangerous? When are accidents most likely to occur?
+
+This dashboard walks you through an exploratory journey of traffic accident patterns, helping you uncover how **weather**, **lighting**, and **timing** affect accident **frequency** and **severity**.
+
+Let's start by examining weather conditions.
+""")
 ####################### MAP ##################################################3
 # Filter to valid lat/long range for Nashville
 df = df[(df['Lat'] >= 36.0) & (df['Lat'] <= 36.4) &
@@ -70,7 +78,7 @@ df = df[(df['Lat'] >= 36.0) & (df['Lat'] <= 36.4) &
 st.markdown("""
 ### Where Are Crashes Happening Most?
 
-Before diving into what causes crashes, let’s look at **where** they occur. The map below shows accident hot spots across the Nashville area.
+Before diving into what causes crashes, let’s look at **where** they occur. The map below shows accident hot spots across the Nashville area. Darker colors mean more accidents.
 
 Use your mouse to **zoom** and **pan** around the map to explore different neighborhoods and clusters.
 """)
@@ -129,15 +137,7 @@ st.pydeck_chart(deck, use_container_width=True)
 #############################################################################################################################
 
 
-st.markdown("""
-### Setting the Stage
 
-Every day, drivers in Nashville face a range of environmental challenges—from foggy mornings to poorly lit roads at night. But which conditions are most dangerous? When are accidents most likely to occur?
-
-This dashboard walks you through an exploratory journey of traffic accident patterns, helping you uncover how **weather**, **lighting**, and **timing** affect accident **frequency** and **severity**.
-
-Let's start by examining weather conditions.
-""")
 
 
 #-------------------------------------------------------------------------------------------------#
