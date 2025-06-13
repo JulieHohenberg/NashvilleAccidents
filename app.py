@@ -7,16 +7,18 @@ import os, streamlit as st, pandas as pd, numpy as np, altair as alt, pydeck as 
 DATA_PATH = "data/nashville_accidents.csv"
 
 @st.cache_data
-def load_csv(path_or_buf) -> pd.DataFrame:
-    return pd.read_csv(path_or_buf)
+def load_sample_csv(path_or_buf, sample_size=10000, seed=42) -> pd.DataFrame:
+    df_full = pd.read_csv(path_or_buf)
+    return df_full.sample(n=min(sample_size, len(df_full)), random_state=seed)
 
 if os.path.exists(DATA_PATH):
-    df = load_csv(DATA_PATH)
+    df = load_sample_csv(DATA_PATH)
 else:
     st.warning("`nashville_accidents.csv` not found – upload it below.")
     up = st.file_uploader("📂 Upload CSV", type="csv")
-    if up is None: st.stop()
-    df = load_csv(up)
+    if up is None:
+        st.stop()
+    df = load_sample_csv(up)
 
 #-------------------------------------------------------------------------------------------------#
 # Basic preprocessing ----------------------------------------------------------------------------
