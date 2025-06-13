@@ -240,7 +240,7 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
 
     # Metric selector
     metric_choice = st.selectbox(
-        "Metric",
+        "Toggle Between Injuries and Fatalities",
         ["Injuries", "Fatalities"],
         index=0,
         key="metric_choice_select",
