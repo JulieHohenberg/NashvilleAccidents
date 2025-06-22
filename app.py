@@ -205,19 +205,6 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
 
     # ------ Selections --------------------------------------------------------
     hour_select = alt.selection_point(fields=['hour'])         # click-to-filter
-    zoom_select = alt.selection_interval(bind='scales')        # drag-zoom / pan
-
-    # ------ Dynamic domain: only show hours present ---------------------------
-    min_hour = int(scatter_data['hour'].min())
-    max_hour = int(scatter_data['hour'].max())
-
-    # JavaScript expression → 0→12 AM, 1→1 AM, …, 13→1 PM …
-    hour_label_expr = (
-        "datum.value === 0 ? '12 AM' : "
-        "datum.value < 12  ? datum.value + ' AM' : "
-        "datum.value === 12 ? '12 PM' : "
-        "(datum.value - 12) + ' PM'"
-    )
 
     # ------ TOP CHART ---------------------------------------------------------
     scatter_chart = (
