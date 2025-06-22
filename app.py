@@ -291,7 +291,7 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
     top_weather2 = df['Weather Description'].value_counts().nlargest(8).index.tolist()
 
     # Select-all BEFORE the widget
-    if st.button("Select all weather conditions"):
+    if st.button("⛅ Select all weather conditions"):
         st.session_state["weather_sel_heat"] = top_weather2
 
     weather_sel_heat = st.multiselect(
@@ -304,7 +304,7 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
     # ---------- Illumination filter ----------
     top_illum = df['Illumination Description'].value_counts().nlargest(6).index.tolist()
 
-    if st.button("Select all lighting conditions"):
+    if st.button("💡 Select all lighting conditions"):
         st.session_state["illum_multiselect"] = top_illum
 
     illum_sel = st.multiselect(
