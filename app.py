@@ -287,47 +287,43 @@ This next section explores how **lighting conditions** and **weather** interact 
 #======================== 2️⃣ WEATHER × LIGHTING ANALYSIS (HEATMAP) ============================#
 with st.expander("Click to explore lighting & weather interaction", expanded=False):
 
-    # ---------------- Weather filter ----------------
-    top_weather2 = df['Weather Description'].value_counts().nlargest(8).index
+    # ---------- Weather filter ----------
+    top_weather2 = df['Weather Description'].value_counts().nlargest(8).index.tolist()
 
-    # “Select all” checkbox
-    select_all_weather = st.checkbox(
-        "Select all weather conditions",
-        value=True,
-        key="select_all_weather",
-    )
+    # Ensure a default in session_state so the multiselect always has something
+    if "weather_sel_heat" not in st.session_state:
+        st.session_state["weather_sel_heat"] = top_weather2
 
     weather_sel_heat = st.multiselect(
         "Weather Condition(s)",
-        list(top_weather2),
-        default=list(top_weather2) if select_all_weather else [],
+        top_weather2,
+        default=st.session_state["weather_sel_heat"],
         key="weather_sel_heat",
     )
 
-    # Force the multiselect to keep all items when “select all” is on
-    if select_all_weather:
-        weather_sel_heat = list(top_weather2)
+    # One-click “select all” reset
+    if st.button("Select all weather descriptions"):
+        st.session_state["weather_sel_heat"] = top_weather2
+        weather_sel_heat = top_weather2    # local variable for this run
 
-    # ---------------- Illumination filter ----------------
-    top_illum = df['Illumination Description'].value_counts().nlargest(6).index
+    # ---------- Illumination filter ----------
+    top_illum = df['Illumination Description'].value_counts().nlargest(6).index.tolist()
 
-    select_all_illum = st.checkbox(
-        "Select all lighting conditions",
-        value=True,
-        key="select_all_illum",
-    )
+    if "illum_multiselect" not in st.session_state:
+        st.session_state["illum_multiselect"] = top_illum
 
     illum_sel = st.multiselect(
         "Lighting Condition(s)",
-        list(top_illum),
-        default=list(top_illum) if select_all_illum else [],
+        top_illum,
+        default=st.session_state["illum_multiselect"],
         key="illum_multiselect",
     )
 
-    if select_all_illum:
-        illum_sel = list(top_illum)
+    if st.button("Select all illumination descriptions"):
+        st.session_state["illum_multiselect"] = top_illum
+        illum_sel = top_illum              # local variable for this run
 
-    # ---------------- Metric selector ----------------
+    # ---------- Metric selector ----------
     metric_choice = st.selectbox(
         "Toggle Between Injuries and Fatalities",
         ["Injuries", "Fatalities"],
@@ -335,7 +331,7 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
         key="metric_choice_select",
     )
 
-    # ---------------- Heat-map build ----------------
+    # ---------- Heat-map builder ----------
     def build_heat(df_in, metric, w_list, i_list):
         agg_col = 'Number of Injuries' if metric == "Injuries" else 'Number of Fatalities'
         title   = f"Average {metric} per Accident"
@@ -349,7 +345,7 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
             .reset_index()
         )
 
-        # ensure full grid so every tile shows
+        # full grid so every tile shows
         full = pd.MultiIndex.from_product(
             [w_list, i_list],
             names=['Weather Description', 'Illumination Description']
@@ -370,16 +366,19 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
                 x='Illumination Description:N',
                 y='Weather Description:N',
                 color=alt.Color('avg_val:Q', scale=color_scale, title=f'Avg {metric} / Accident'),
-                tooltip=['Weather Description', 'Illumination Description',
-                         alt.Tooltip('avg_val:Q', format=fmt)]
+                tooltip=[
+                    'Weather Description',
+                    'Illumination Description',
+                    alt.Tooltip('avg_val:Q', format=fmt)
+                ],
             )
             .properties(title=title, width=800, height=420)
         )
 
+    # Apply the active filters and show the heat-map
     df_weather_heat = df[df['Weather Description'].isin(weather_sel_heat)]
     heatmap = build_heat(df_weather_heat, metric_choice, weather_sel_heat, illum_sel)
     st.altair_chart(heatmap, use_container_width=True)
-
 
 ########################################################################################
 # Time/Day Heatmap and Map
