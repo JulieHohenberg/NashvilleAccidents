@@ -181,6 +181,11 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
 
     # ------ Weather filter ----------------------------------------------------
     top_weather = df['Weather Description'].value_counts().nlargest(8).index.tolist()
+    
+    # “Select all” reset button (must appear *before* the multiselect)
+    if st.button("Select all weather conditions", key="select_all_weather_btn"):
+        st.session_state["weather_sel"] = top_weather
+    
     weather_sel = st.multiselect(
         "Weather Condition(s)",
         options=top_weather,
