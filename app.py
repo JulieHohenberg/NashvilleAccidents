@@ -290,38 +290,29 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
     # ---------- Weather filter ----------
     top_weather2 = df['Weather Description'].value_counts().nlargest(8).index.tolist()
 
-    # Ensure a default in session_state so the multiselect always has something
-    if "weather_sel_heat" not in st.session_state:
+    # Select-all BEFORE the widget
+    if st.button("Select all weather descriptions"):
         st.session_state["weather_sel_heat"] = top_weather2
 
     weather_sel_heat = st.multiselect(
         "Weather Condition(s)",
-        top_weather2,
-        default=st.session_state["weather_sel_heat"],
+        options=top_weather2,
+        default=st.session_state.get("weather_sel_heat", top_weather2),
         key="weather_sel_heat",
     )
-
-    # One-click “select all” reset
-    if st.button("Select all weather descriptions"):
-        st.session_state["weather_sel_heat"] = top_weather2
-        weather_sel_heat = top_weather2    # local variable for this run
 
     # ---------- Illumination filter ----------
     top_illum = df['Illumination Description'].value_counts().nlargest(6).index.tolist()
 
-    if "illum_multiselect" not in st.session_state:
+    if st.button("Select all illumination descriptions"):
         st.session_state["illum_multiselect"] = top_illum
 
     illum_sel = st.multiselect(
         "Lighting Condition(s)",
-        top_illum,
-        default=st.session_state["illum_multiselect"],
+        options=top_illum,
+        default=st.session_state.get("illum_multiselect", top_illum),
         key="illum_multiselect",
     )
-
-    if st.button("Select all illumination descriptions"):
-        st.session_state["illum_multiselect"] = top_illum
-        illum_sel = top_illum              # local variable for this run
 
     # ---------- Metric selector ----------
     metric_choice = st.selectbox(
@@ -345,7 +336,6 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
             .reset_index()
         )
 
-        # full grid so every tile shows
         full = pd.MultiIndex.from_product(
             [w_list, i_list],
             names=['Weather Description', 'Illumination Description']
@@ -375,7 +365,7 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
             .properties(title=title, width=800, height=420)
         )
 
-    # Apply the active filters and show the heat-map
+    # Apply filters and draw heat-map
     df_weather_heat = df[df['Weather Description'].isin(weather_sel_heat)]
     heatmap = build_heat(df_weather_heat, metric_choice, weather_sel_heat, illum_sel)
     st.altair_chart(heatmap, use_container_width=True)
