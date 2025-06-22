@@ -296,92 +296,85 @@ This next section explores how **lighting conditions** and **weather** interact 
 """)
 
 
-#======================== 2️⃣ WEATHER × LIGHTING ANALYSIS (HEATMAP) ============================#
-with st.expander("Click to explore lighting & weather interaction", expanded=False):
+#======================== 1️⃣ WEATHER-ONLY ANALYSIS (SCATTER & BAR CHARTS) ================================#
+with st.expander("Click a bubble to reveal how that hour compares across weather types in overall crash volume.", expanded=False):
 
-    # ---------- Weather filter ----------
-    top_weather2 = df['Weather Description'].value_counts().nlargest(8).index.tolist()
+    # ---------- Weather filter ------------------------------------------------
+    top_weather = df['Weather Description'].value_counts().nlargest(8).index.tolist()
 
-    # 1️⃣  First run: create a default list in session_state
     if "weather_sel" not in st.session_state:
         st.session_state["weather_sel"] = top_weather
 
-    # 2️⃣  “Select all” button (updates the key *before* widget is drawn)
     if st.button("Select all weather conditions", key="select_all_weather_btn"):
         st.session_state["weather_sel"] = top_weather
 
-
-    weather_sel_heat = st.multiselect(
+    weather_sel = st.multiselect(
         "Weather Condition(s)",
-        options=top_weather2,
-        default=st.session_state.get("weather_sel_heat", top_weather2),
-        key="weather_sel_heat",
+        options=top_weather,
+        key="weather_sel"
     )
 
-    # ---------- Illumination filter ----------
-    top_illum = df['Illumination Description'].value_counts().nlargest(6).index.tolist()
+    # ---------- Prepare data --------------------------------------------------
+    df_weather = df[df['Weather Description'].isin(weather_sel)].copy()
+    df_weather['hour']       = df_weather['Date and Time'].dt.hour
+    df_weather['has_injury'] = df_weather['Number of Injuries'] > 0
 
-    if st.button("💡 Select all lighting conditions"):
-        st.session_state["illum_multiselect"] = top_illum
+    scatter_data = (
+        df_weather.groupby(['hour', 'Weather Description'])
+        .agg(
+            accident_count=('Weather Description', 'count'),
+            injury_count=('has_injury', 'sum')
+        )
+        .reset_index()
+    )
+    scatter_data['% Injury'] = scatter_data['injury_count'] / scatter_data['accident_count'] * 100
 
-    illum_sel = st.multiselect(
-        "Lighting Condition(s)",
-        options=top_illum,
-        default=st.session_state.get("illum_multiselect", top_illum),
-        key="illum_multiselect",
+    # ---------- Selections ----------------------------------------------------
+    hour_select = alt.selection_point(fields=['hour'])         # click-to-filter
+    zoom_select = alt.selection_interval(bind='scales')        # drag-zoom / pan (shared)
+
+    # ---------- TOP CHART: scatter -------------------------------------------
+    scatter_chart = (
+        alt.Chart(scatter_data)
+        .mark_circle()
+        .encode(
+            x=alt.X('hour:Q', title='Hour of Day', axis=alt.Axis(tickMinStep=1)),
+            y=alt.Y('% Injury:Q', title='% of Accidents with Injury'),
+            size=alt.Size('accident_count:Q', scale=alt.Scale(range=[10, 600]), legend=None),
+            color=alt.Color('Weather Description:N', legend=alt.Legend(title='Weather')),
+            tooltip=[
+                alt.Tooltip('hour:Q', title='Hour'),
+                'Weather Description',
+                alt.Tooltip('accident_count:Q', title='Accident Count'),
+                alt.Tooltip('% Injury:Q', format='.1f')
+            ]
+        )
+        .add_params(hour_select, zoom_select)
+        .properties(width=800, height=320,
+                    title='Injury Rate by Hour and Weather Type')
     )
 
-    # ---------- Metric selector ----------
-    metric_choice = st.selectbox(
-        "Toggle Between Injuries and Fatalities",
-        ["Injuries", "Fatalities"],
-        index=0,
-        key="metric_choice_select",
+    # ---------- BOTTOM CHART: bar (now zoom/pan enabled on y-axis) -----------
+    bar_data = (
+        df_weather.groupby(['hour', 'Weather Description'])
+        .size()
+        .reset_index(name='accident_count')
     )
 
-    # ---------- Heat-map builder ----------
-    def build_heat(df_in, metric, w_list, i_list):
-        agg_col = 'Number of Injuries' if metric == "Injuries" else 'Number of Fatalities'
-        title   = f"Average {metric} per Accident"
-        fmt     = '.2f' if metric == "Injuries" else '.3f'
-
-        df_sub = df_in[df_in['Illumination Description'].isin(i_list)]
-
-        grp = (
-            df_sub.groupby(['Weather Description', 'Illumination Description'])
-            .agg(total=(agg_col, 'sum'), acc_cnt=('Weather Description', 'count'))
-            .reset_index()
+    bar_chart = (
+        alt.Chart(bar_data)
+        .transform_filter(hour_select)
+        .mark_bar()
+        .encode(
+            x=alt.X('Weather Description:N', sort='-y'),
+            y=alt.Y('accident_count:Q', title='Accident Count'),
+            color=alt.Color('Weather Description:N', legend=None),
+            tooltip=['Weather Description', 'accident_count']
         )
-
-        full = pd.MultiIndex.from_product(
-            [w_list, i_list],
-            names=['Weather Description', 'Illumination Description']
-        )
-        grp = (
-            grp.set_index(['Weather Description', 'Illumination Description'])
-            .reindex(full, fill_value=0)
-            .reset_index()
-        )
-        grp['avg_val'] = np.where(grp['acc_cnt'] > 0, grp['total'] / grp['acc_cnt'], 0)
-
-        color_scale = alt.Scale(scheme='reds', domain=[0, grp['avg_val'].max()])
-
-        return (
-            alt.Chart(grp)
-            .mark_rect()
-            .encode(
-                x='Illumination Description:N',
-                y='Weather Description:N',
-                color=alt.Color('avg_val:Q', scale=color_scale, title=f'Avg {metric} / Accident'),
-                tooltip=[
-                    'Weather Description',
-                    'Illumination Description',
-                    alt.Tooltip('avg_val:Q', format=fmt)
-                ],
-            )
-            .properties(title=title, width=800, height=420)
-        )
-
+        .add_params(zoom_select)   # ⬅️ same zoom/pan interaction
+        .properties(width=800, height=300,
+                    title='Accident Volume by Weather (Selected Hour)')
+    )
     # Apply filters and draw heat-map
     df_weather_heat = df[df['Weather Description'].isin(weather_sel_heat)]
     heatmap = build_heat(df_weather_heat, metric_choice, weather_sel_heat, illum_sel)
