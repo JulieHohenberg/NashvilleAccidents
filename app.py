@@ -498,71 +498,95 @@ with st.expander("Click to explore temporal patterns & collision types", expande
     st.altair_chart(stacked, use_container_width=True)
 
 # ─── 📊 Key Insights & Calls to Action (Tabbed Version) ─────────────────────────
-# Paste this near the bottom of app.py
-
 st.markdown("## 🔍 Key Insights & Recommended Actions")
 
-# --- Style tweaks: softer card, nicer bullets ---
+# 1️⃣  DATA --------------------------------------------------------------------
+insights = {
+    "⚠️ Injuries ↑ — Fog at dawn & night sleet/hail": {
+        "metric": "Highest **injuries / crash**",
+        "why": (
+            "Limited dawn visibility & slick surfaces sharply raise injury odds."
+        ),
+        "actions": [
+            "Deploy **weather-triggered variable-speed signs** on fog/sleet corridors",
+            "Schedule **pre-dawn sanding/salting** for bridges & overpasses",
+        ],
+        "owners": "**Nashville DPW & Office of Emergency Mgmt**",
+    },
+    "🌑 Fatalities ↑ — Clear but dark, unlit roads": {
+        "metric": "Highest **fatalities / crash**",
+        "why": (
+            "Drivers over-estimate visibility; reaction time plummets in darkness."
+        ),
+        "actions": [
+            "**Fast-track LED street-light builds** on high-speed rural arterials",
+            "Refresh **reflective lane and shoulder markings** & add rumble strips",
+        ],
+        "owners": "**Metro Works & THSO**",
+    },
+    "🕒 Crash Frequency ↑ — 5 AM wknd · 11 PM Fri · Wed 8-10 PM": {
+        "metric": "Highest **crash count** windows",
+        "why": "Fatigue and impaired driving cluster during these time slots.",
+        "actions": [
+            "Schedule **DUI checkpoints & visibility patrols** during peaks",
+            "Pilot **late-night transit / ride-hail vouchers** to cut drunk-driving exposure",
+        ],
+        "owners": "**Metro Police & Transit Authority**",
+    },
+    "🚗 Crash Mode ↑ — Front-to-Rear collisions": {
+        "metric": "Most **frequent collision type**",
+        "why": "Tailgating and abrupt braking trigger chain-reaction crashes.",
+        "actions": [
+            "Launch **“Leave 3 Seconds” anti-tailgating media blitz**",
+            "**Re-time signals** on high-volume corridors to smooth stop-and-go waves",
+        ],
+        "owners": "**DPW Traffic Engineering**",
+    },
+}
+
+# 2️⃣  STYLE TWEAKS ------------------------------------------------------------
 st.markdown(
     """
     <style>
-        /* Make tab labels a bit larger & bolder */
-        div[data-testid="stTabs"] button {font-weight:600;font-size:0.95rem;}
-        /* Add a subtle border & shadow to each tab body */
-        div[data-testid="stTab"] > div {
+        /* Radio labels a bit bigger & bolder */
+        div[data-testid="stRadio"] label {font-weight:600;font-size:0.95rem;}
+        /* Info card look */
+        div.infobox {
             border: 1px solid #e6e6e6;
             border-radius: 0.5rem;
             padding: 1rem 1.25rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.04);
         }
-        /* Nicer bullet spacing */
-        ul {margin-top: 0;}
-        ul li {margin-bottom: 0.35rem;}
+        /* Bullet spacing */
+        ul {margin-top:0.25rem;}
+        ul li {margin-bottom:0.35rem;}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# ---- Data structure (markdown strings) --------------------------------------
-insights = {
-    "⚠️ Injuries – Fog & Night Sleet": """
-**Why it matters**  
-Limited visibility + slick pavement ⮕ injury surge.
+# 3️⃣  SELECTOR & DISPLAY ------------------------------------------------------
+choice = st.radio(
+    "Select an insight to view details:",
+    list(insights.keys()),
+    index=0,
+)
 
-**Actions – Nashville DPW & OEM**
-- Deploy **weather-triggered variable speed signs** on fog/sleet corridors  
-- Schedule **pre-dawn sanding/salting** for bridges & overpasses  
-""",
-    "🌑 Fatalities – Dark, Unlit Roads": """
-**Why it matters**  
-Clear skies fool drivers into overestimating visibility; reaction time drops.
+item = insights[choice]
 
-**Actions – Metro Works & THSO**
-- **Fast-track LED street-light builds** on high-speed rural arterials  
-- Refresh **reflective lane/shoulder markings** & add rumble strips  
-""",
-    "🕒 Peak Times – 5 AM weekends, 11 PM Fri, Wed 8-10 PM": """
-**Why it matters**  
-Fatigue + impaired driving cluster in these windows.
+# Render nicely
+st.markdown(f"""
+<div class="infobox">
+<b>Risk metric:</b> {item['metric']}  
+<br><br>
+<b>Why it matters</b><br>
+{item['why']}  
 
-**Actions – Metro Police & Transit**
-- Schedule **DUI checkpoints & visibility patrols** during peaks  
-- Pilot **late-night transit or ride-hail vouchers** to cut drunk-driving exposure  
-""",
-    "🚗 Crash Mode – Front-to-Rear": """
-**Why it matters**  
-Tailgating + sudden braking trigger chain-reaction crashes.
+<br>
+<b>Recommended actions ({item['owners']})</b>
+<ul>
+    {''.join(f'<li>{act}</li>' for act in item['actions'])}
+</ul>
+</div>
+""", unsafe_allow_html=True)
 
-**Actions – DPW Traffic Engineering**
-- Launch **“Leave 3 Seconds” anti-tailgating media blitz**  
-- **Re-time signals** on high-volume corridors to smooth stop-and-go waves  
-""",
-}
-
-# ---- Render tabs ------------------------------------------------------------
-tab_titles = list(insights.keys())
-tabs = st.tabs(tab_titles)
-
-for tab, key in zip(tabs, tab_titles):
-    with tab:
-        st.markdown(insights[key])
