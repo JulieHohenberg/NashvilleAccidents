@@ -304,15 +304,15 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
     # ---------- Illumination filter ----------
     top_illum = df['Illumination Description'].value_counts().nlargest(6).index.tolist()
 
-    if st.button("Select all lighting conditions"):
-        st.session_state["illum_multiselect"] = top_illum
-
     illum_sel = st.multiselect(
         "Lighting Condition(s)",
         options=top_illum,
         default=st.session_state.get("illum_multiselect", top_illum),
         key="illum_multiselect",
     )
+
+    if st.button("Select all lighting conditions"):
+        st.session_state["illum_multiselect"] = top_illum
 
     # ---------- Metric selector ----------
     metric_choice = st.selectbox(
