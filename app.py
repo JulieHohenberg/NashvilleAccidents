@@ -257,6 +257,7 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
             color=alt.Color('Weather Description:N', legend=None),
             tooltip=['Weather Description', 'accident_count']
         )
+        .add_params(zoom_select)
         .properties(
             width=800,
             height=300,
@@ -264,7 +265,7 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
         )
     )
     # ------ Display combined charts -----------------------------------------
-    st.caption("🖱️ *Tip: drag to pan or zoom the scatter plot; click a bubble to filter the bar chart.*")
+    st.caption("🖱️ *Tip: drag to pan or zoom either chart; click a bubble to filter the bar chart.*")
     st.altair_chart(alt.vconcat(scatter_chart, bar_chart), use_container_width=True)
 
 #-------------------------------------------------------------------------------------------------#
@@ -470,7 +471,6 @@ with st.expander("Click to explore temporal patterns & collision types", expande
     )
 
     # 4 ── bottom chart: frequency per collision type, filtered by the same selection ------
-    # bottom chart: frequency per collision type, filtered by the same selection
     collision_freq = (
     alt.Chart(df_labeled)                       # df_labeled already has day/hour labels
       .transform_filter(sel_time)               # ← same selection as the grid
