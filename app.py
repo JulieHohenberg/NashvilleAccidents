@@ -287,25 +287,47 @@ This next section explores how **lighting conditions** and **weather** interact 
 #======================== 2️⃣ WEATHER × LIGHTING ANALYSIS (HEATMAP) ============================#
 with st.expander("Click to explore lighting & weather interaction", expanded=False):
 
-    # Re-select weather (needed for this analysis)
+    # ---------------- Weather filter ----------------
     top_weather2 = df['Weather Description'].value_counts().nlargest(8).index
+
+    # “Select all” checkbox
+    select_all_weather = st.checkbox(
+        "Select all weather conditions",
+        value=True,
+        key="select_all_weather",
+    )
+
     weather_sel_heat = st.multiselect(
         "Weather Condition(s)",
         list(top_weather2),
-        default=list(top_weather2),
+        default=list(top_weather2) if select_all_weather else [],
         key="weather_sel_heat",
     )
 
-    # Lighting filter
+    # Force the multiselect to keep all items when “select all” is on
+    if select_all_weather:
+        weather_sel_heat = list(top_weather2)
+
+    # ---------------- Illumination filter ----------------
     top_illum = df['Illumination Description'].value_counts().nlargest(6).index
+
+    select_all_illum = st.checkbox(
+        "Select all lighting conditions",
+        value=True,
+        key="select_all_illum",
+    )
+
     illum_sel = st.multiselect(
         "Lighting Condition(s)",
         list(top_illum),
-        default=list(top_illum),
+        default=list(top_illum) if select_all_illum else [],
         key="illum_multiselect",
     )
 
-    # Metric selector
+    if select_all_illum:
+        illum_sel = list(top_illum)
+
+    # ---------------- Metric selector ----------------
     metric_choice = st.selectbox(
         "Toggle Between Injuries and Fatalities",
         ["Injuries", "Fatalities"],
@@ -313,7 +335,7 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
         key="metric_choice_select",
     )
 
-    # ----------------- Heat-map (filtered by Weather + Lighting + Metric) ------------------ #
+    # ---------------- Heat-map build ----------------
     def build_heat(df_in, metric, w_list, i_list):
         agg_col = 'Number of Injuries' if metric == "Injuries" else 'Number of Fatalities'
         title   = f"Average {metric} per Accident"
@@ -323,14 +345,11 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
 
         grp = (
             df_sub.groupby(['Weather Description', 'Illumination Description'])
-            .agg(
-                total=(agg_col, 'sum'),
-                acc_cnt=('Weather Description', 'count')
-            )
+            .agg(total=(agg_col, 'sum'), acc_cnt=('Weather Description', 'count'))
             .reset_index()
         )
 
-        # full grid so every tile shows
+        # ensure full grid so every tile shows
         full = pd.MultiIndex.from_product(
             [w_list, i_list],
             names=['Weather Description', 'Illumination Description']
@@ -340,16 +359,9 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
             .reindex(full, fill_value=0)
             .reset_index()
         )
-        grp['avg_val'] = np.where(
-            grp['acc_cnt'] > 0,
-            grp['total'] / grp['acc_cnt'],
-            0
-        )
+        grp['avg_val'] = np.where(grp['acc_cnt'] > 0, grp['total'] / grp['acc_cnt'], 0)
 
-        color_scale = alt.Scale(
-            scheme='reds',
-            domain=[0, grp['avg_val'].max()]
-        )
+        color_scale = alt.Scale(scheme='reds', domain=[0, grp['avg_val'].max()])
 
         return (
             alt.Chart(grp)
@@ -357,16 +369,9 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
             .encode(
                 x='Illumination Description:N',
                 y='Weather Description:N',
-                color=alt.Color(
-                    'avg_val:Q',
-                    scale=color_scale,
-                    title=f'Avg {metric} / Accident'
-                ),
-                tooltip=[
-                    'Weather Description',
-                    'Illumination Description',
-                    alt.Tooltip('avg_val:Q', format=fmt)
-                ]
+                color=alt.Color('avg_val:Q', scale=color_scale, title=f'Avg {metric} / Accident'),
+                tooltip=['Weather Description', 'Illumination Description',
+                         alt.Tooltip('avg_val:Q', format=fmt)]
             )
             .properties(title=title, width=800, height=420)
         )
@@ -374,6 +379,7 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
     df_weather_heat = df[df['Weather Description'].isin(weather_sel_heat)]
     heatmap = build_heat(df_weather_heat, metric_choice, weather_sel_heat, illum_sel)
     st.altair_chart(heatmap, use_container_width=True)
+
 
 ########################################################################################
 # Time/Day Heatmap and Map
