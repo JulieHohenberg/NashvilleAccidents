@@ -497,50 +497,47 @@ with st.expander("Click to explore temporal patterns & collision types", expande
 
     st.altair_chart(stacked, use_container_width=True)
 
-# ─── 📊 Key Insights & Calls to Action (Tabbed Version) ─────────────────────────
+# ─── 📊 Key Insights & Calls to Action (Vertical Selector) ─────────────────────
+
 st.markdown("## 🔍 Key Insights & Recommended Actions")
 
 # 1️⃣  DATA --------------------------------------------------------------------
 insights = {
     "⚠️ Injuries ↑ — Fog at dawn & night sleet/hail": {
-        "metric": "Highest **injuries / crash**",
-        "why": (
-            "Limited dawn visibility & slick surfaces sharply raise injury odds."
-        ),
+        "metric": "Highest <strong>injuries / crash</strong>",
+        "why": "Limited dawn visibility & slick surfaces sharply raise injury odds.",
         "actions": [
-            "Deploy **weather-triggered variable-speed signs** on fog/sleet corridors",
-            "Schedule **pre-dawn sanding/salting** for bridges & overpasses",
+            "Deploy <strong>weather-triggered variable-speed signs</strong> on fog/sleet corridors",
+            "Schedule <strong>pre-dawn sanding/salting</strong> for bridges & overpasses",
         ],
-        "owners": "**Nashville DPW & Office of Emergency Mgmt**",
+        "owners": "<strong>Nashville DPW & Office of Emergency Mgmt</strong>",
     },
     "🌑 Fatalities ↑ — Clear but dark, unlit roads": {
-        "metric": "Highest **fatalities / crash**",
-        "why": (
-            "Drivers over-estimate visibility; reaction time plummets in darkness."
-        ),
+        "metric": "Highest <strong>fatalities / crash</strong>",
+        "why": "Drivers over-estimate visibility; reaction time plummets in darkness.",
         "actions": [
-            "**Fast-track LED street-light builds** on high-speed rural arterials",
-            "Refresh **reflective lane and shoulder markings** & add rumble strips",
+            "<strong>Fast-track LED street-light builds</strong> on high-speed rural arterials",
+            "Refresh <strong>reflective lane & shoulder markings</strong> and add rumble strips",
         ],
-        "owners": "**Metro Works & THSO**",
+        "owners": "<strong>Metro Works & THSO</strong>",
     },
     "🕒 Crash Frequency ↑ — 5 AM wknd · 11 PM Fri · Wed 8-10 PM": {
-        "metric": "Highest **crash count** windows",
+        "metric": "Highest <strong>crash count</strong> windows",
         "why": "Fatigue and impaired driving cluster during these time slots.",
         "actions": [
-            "Schedule **DUI checkpoints & visibility patrols** during peaks",
-            "Pilot **late-night transit / ride-hail vouchers** to cut drunk-driving exposure",
+            "Schedule <strong>DUI checkpoints & visibility patrols</strong> during peaks",
+            "Pilot <strong>late-night transit/ride-hail vouchers</strong> to cut drunk-driving exposure",
         ],
-        "owners": "**Metro Police & Transit Authority**",
+        "owners": "<strong>Metro Police & Transit Authority</strong>",
     },
     "🚗 Crash Mode ↑ — Front-to-Rear collisions": {
-        "metric": "Most **frequent collision type**",
+        "metric": "Most <strong>frequent collision type</strong>",
         "why": "Tailgating and abrupt braking trigger chain-reaction crashes.",
         "actions": [
-            "Launch **“Leave 3 Seconds” anti-tailgating media blitz**",
-            "**Re-time signals** on high-volume corridors to smooth stop-and-go waves",
+            "Launch <strong>“Leave 3 Seconds” anti-tailgating media blitz</strong>",
+            "<strong>Re-time signals</strong> on high-volume corridors to smooth stop-and-go waves",
         ],
-        "owners": "**DPW Traffic Engineering**",
+        "owners": "<strong>DPW Traffic Engineering</strong>",
     },
 }
 
@@ -574,15 +571,13 @@ choice = st.radio(
 
 item = insights[choice]
 
-# Render nicely
 st.markdown(f"""
 <div class="infobox">
-<b>Risk metric:</b> {item['metric']}  
-<br><br>
-<b>Why it matters</b><br>
-{item['why']}  
+<b>Risk metric:</b> {item['metric']}<br><br>
 
-<br>
+<b>Why it matters</b><br>
+{item['why']}<br><br>
+
 <b>Recommended actions ({item['owners']})</b>
 <ul>
     {''.join(f'<li>{act}</li>' for act in item['actions'])}
