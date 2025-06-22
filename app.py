@@ -178,6 +178,8 @@ The scatterplot below helps you uncover patterns in injury rates by hour and wea
 #-------------------------------------------------------------------------------------------------#
 #======================== 1️⃣ WEATHER-ONLY ANALYSIS (SCATTER & BAR CHARTS) ================================#
 with st.expander("Click a bubble to reveal how that hour compares across weather types in overall crash volume.", expanded=False):
+
+    # ------ Weather filter ----------------------------------------------------
     top_weather = df['Weather Description'].value_counts().nlargest(8).index.tolist()
     weather_sel = st.multiselect(
         "Weather Condition(s)",
@@ -186,8 +188,9 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
         key="weather_sel"
     )
 
-    df_weather = df[df['Weather Description'].isin(weather_sel)]
-    df_weather['hour'] = df_weather['Date and Time'].dt.hour
+    # ------ Prepare data ------------------------------------------------------
+    df_weather = df[df['Weather Description'].isin(weather_sel)].copy()
+    df_weather['hour']       = df_weather['Date and Time'].dt.hour
     df_weather['has_injury'] = df_weather['Number of Injuries'] > 0
 
     scatter_data = (
@@ -200,10 +203,11 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
     )
     scatter_data['% Injury'] = scatter_data['injury_count'] / scatter_data['accident_count'] * 100
 
-    # Selection: choose an hour
-    hour_select = alt.selection_point(fields=['hour'])
+    # ------ Selections --------------------------------------------------------
+    hour_select = alt.selection_point(fields=['hour'])               # click-to-filter
+    zoom_select = alt.selection_interval(bind='scales')              # drag-zoom / pan
 
-    # TOP CHART: Hour vs. % Injury scatter
+    # ------ TOP CHART: scatter with zoom & pan -------------------------------
     scatter_chart = (
         alt.Chart(scatter_data)
         .mark_circle()
@@ -218,7 +222,7 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
                 alt.Tooltip('% Injury:Q', format='.1f')
             ]
         )
-        .add_params(hour_select)
+        .add_params(hour_select, zoom_select)        # <-- enables click filter + zoom/pan
         .properties(
             width=800,
             height=320,
@@ -226,8 +230,7 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
         )
     )
 
-    # BOTTOM CHART: Total accidents by weather, filtered to selected hour
-    df_weather['hour'] = df_weather['Date and Time'].dt.hour
+    # ------ BOTTOM CHART: bar chart filtered by selected hour ---------------
     bar_data = (
         df_weather.groupby(['hour', 'Weather Description'])
         .size()
@@ -251,9 +254,8 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
         )
     )
 
+    # ------ Display combined charts -----------------------------------------
     st.altair_chart(alt.vconcat(scatter_chart, bar_chart), use_container_width=True)
-
-
 
 #-------------------------------------------------------------------------------------------------#
 # Illumination filter (below bar chart, affects heat-map only) 
