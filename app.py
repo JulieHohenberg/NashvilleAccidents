@@ -255,6 +255,7 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
     )
 
     # ------ Display combined charts -----------------------------------------
+    st.caption("🖱️ *Tip: drag to pan or zoom the scatter plot; click a bubble to filter the bar chart.*")
     st.altair_chart(alt.vconcat(scatter_chart, bar_chart), use_container_width=True)
 
 #-------------------------------------------------------------------------------------------------#
