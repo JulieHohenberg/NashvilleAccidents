@@ -83,55 +83,53 @@ Before diving into what causes crashes, let’s look at **where** they occur. Th
 Use your mouse to **zoom** and **pan** around the map to explore different neighborhoods and clusters.
 """)
 
-# Compute center of the map
+# 2) Short intro text
+st.markdown("""
+### 📍 Where Are Crashes Happening Most (3-D)?
+
+Right-click + drag to **tilt** and **rotate**; scroll to **zoom**.
+Taller hexagonal towers = more crashes in that area.
+""")
+
+# 3) Map center
 midpoint = (np.average(df["Lat"]), np.average(df["Long"]))
 
-# PyDeck heatmap layer with tooltips
-heatmap_layer = pdk.Layer(
-    "HeatmapLayer",
+# 4) 3-D HexagonLayer
+hex_layer = pdk.Layer(
+    "HexagonLayer",
     data=df,
-    get_position='[Long, Lat]',
-    get_weight=1,
-    radius=200,
-    intensity=0.4,
-    threshold=0.05,
+    get_position="[Long, Lat]",
+    radius=200,                # metres per hex; tweak as needed
+    elevation_scale=50,        # vertical exaggeration
+    elevation_range=[0, 1500], # min/max tower height
+    extruded=True,
+    coverage=1,
     pickable=True,
-    colorRange=[
-        [255,255,204],
-        [255,237,160],
-        [254,217,118],
-        [254,178, 76],
-        [253,141, 60],
-        [240, 59, 32],
-    ],
+    tooltip=True,
 )
 
-# Define map view with zoom/pan enabled
+# 5) View / camera
 view_state = pdk.ViewState(
     latitude=midpoint[0],
     longitude=midpoint[1],
     zoom=11,
-    pitch=40,
-    bearing=0,
+    pitch=60,   # >50° for strong 3-D effect
+    bearing=30, # slight rotation for depth cue
 )
 
-# Deck object
+# 6) Deck object
 deck = pdk.Deck(
-    layers=[heatmap_layer],
+    layers=[hex_layer],
     initial_view_state=view_state,
     map_style="mapbox://styles/mapbox/satellite-v9",
     tooltip={
-        "html": """
-            <b>Address:</b> {Location} <br/>
-            <b>Injuries:</b> {Number of Injuries} <br/>
-            <b>Fatalities:</b> {Number of Fatalities} <br/>
-            <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
-        """,
+        "html": "<b>Crashes in Cell:</b> {elevationValue}",
         "style": {"font-size": "12px"},
     },
+    controller=True,  # enables tilt/rotate
 )
 
-# Display in Streamlit
+# 7) Show in Streamlit
 st.pydeck_chart(deck, use_container_width=True)
 
 #############################################################################################################################
