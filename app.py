@@ -204,25 +204,41 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
     scatter_data['% Injury'] = scatter_data['injury_count'] / scatter_data['accident_count'] * 100
 
     # ------ Selections --------------------------------------------------------
-    hour_select = alt.selection_point(fields=['hour'])               # click-to-filter
-    zoom_select = alt.selection_interval(bind='scales')              # drag-zoom / pan
+    hour_select = alt.selection_point(fields=['hour'])         # click-to-filter
+    zoom_select = alt.selection_interval(bind='scales')        # drag-zoom / pan
 
-    # ------ TOP CHART: scatter with zoom & pan -------------------------------
+    # JS expression to convert 0-23 into 12 AM / 1 AM ... 11 PM
+    hour_label_expr = (
+        "datum.value === 0 ? '12 AM' : "
+        "datum.value < 12  ? datum.value + ' AM' : "
+        "datum.value === 12 ? '12 PM' : "
+        "(datum.value - 12) + ' PM'"
+    )
+
+    # ------ TOP CHART: scatter with zoom, pan, nice hour labels --------------
     scatter_chart = (
         alt.Chart(scatter_data)
         .mark_circle()
         .encode(
-            x=alt.X('hour:Q', title='Hour of Day'),
+            x=alt.X(
+                'hour:Q',
+                title='Hour of Day',
+                axis=alt.Axis(
+                    tickMinStep=1,
+                    labelExpr=hour_label_expr
+                )
+            ),
             y=alt.Y('% Injury:Q', title='% of Accidents with Injury'),
             size=alt.Size('accident_count:Q', scale=alt.Scale(range=[10, 600]), legend=None),
             color=alt.Color('Weather Description:N', legend=alt.Legend(title='Weather')),
             tooltip=[
-                'hour', 'Weather Description',
+                alt.Tooltip('hour:Q', title='Hour'),
+                'Weather Description',
                 alt.Tooltip('accident_count:Q', title='Accident Count'),
                 alt.Tooltip('% Injury:Q', format='.1f')
             ]
         )
-        .add_params(hour_select, zoom_select)        # <-- enables click filter + zoom/pan
+        .add_params(hour_select, zoom_select)
         .properties(
             width=800,
             height=320,
@@ -253,7 +269,6 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
             title='Accident Volume by Weather (Selected Hour)'
         )
     )
-
     # ------ Display combined charts -----------------------------------------
     st.caption("🖱️ *Tip: drag to pan or zoom the scatter plot; click a bubble to filter the bar chart.*")
     st.altair_chart(alt.vconcat(scatter_chart, bar_chart), use_container_width=True)
