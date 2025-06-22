@@ -496,3 +496,68 @@ with st.expander("Click to explore temporal patterns & collision types", expande
     )
 
     st.altair_chart(stacked, use_container_width=True)
+
+# ─── 📊 Key Insights & Calls to Action ───────────────────────────────────────────
+# Paste this at the very bottom of app.py
+
+import streamlit as st
+
+# Optional one-time style tweaks (feel free to delete)
+st.markdown(
+    """
+    <style>
+        /* Make the dropdown label bold */
+        div[data-testid="stSelectbox"] label {font-weight:700;}
+        /* Add a subtle border & padding around the info box */
+        div[data-testid="stInfo"] {
+            border: 1px solid #e6e6e6;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown("## 🔍 Key Insights & Recommended Actions")
+
+insights = {
+    "Fog at dawn & sleet/hail at night → highest injuries": """\
+**Why it matters**  
+Limited visibility and slick surfaces sharply raise injury risk.
+
+**Action — Nashville DPW & OEM**  
+- Deploy **weather-activated speed-limit signs** on high-risk corridors  
+- Schedule **early-morning sanding/salting patrols** on bridges & overpasses\
+""",
+    "Clear but dark, unlit roads at night → highest fatalities": """\
+**Why it matters**  
+Drivers over-estimate visibility; reaction times plummet in darkness.
+
+**Action — Metro Works & THSO**  
+- **Fast-track street-light installation** and add LED retrofits  
+- Refresh **reflective lane and shoulder markings** on rural arterials\
+""",
+    "Crash peaks: 5 AM weekends, 11 PM Friday, 8–10 PM Wednesday": """\
+**Why it matters**  
+Fatigue and impaired driving surge during these windows.
+
+**Action — Metro Police & Transit Authority**  
+- Schedule **targeted DUI checkpoints and patrols**  
+- Pilot **late-night transit or ride-hail subsidies** to reduce drunk driving\
+""",
+    "Front-to-rear collisions are most common": """\
+**Why it matters**  
+Tailgating and abrupt braking trigger chain-reaction crashes.
+
+**Action — DPW Traffic Engineering**  
+- Launch a **“Leave 3 Seconds” anti-tailgating media blitz**  
+- **Re-time signals** along high-volume corridors to smooth flow\
+""",
+}
+
+# Dropdown selector
+selection = st.selectbox("Select an insight to view details:", list(insights.keys()))
+
+# Nicely formatted info box
+st.info(insights[selection])
