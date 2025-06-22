@@ -497,67 +497,72 @@ with st.expander("Click to explore temporal patterns & collision types", expande
 
     st.altair_chart(stacked, use_container_width=True)
 
-# ─── 📊 Key Insights & Calls to Action ───────────────────────────────────────────
-# Paste this at the very bottom of app.py
+# ─── 📊 Key Insights & Calls to Action (Tabbed Version) ─────────────────────────
+# Paste this near the bottom of app.py
 
-import streamlit as st
+st.markdown("## 🔍 Key Insights & Recommended Actions")
 
-# Optional one-time style tweaks (feel free to delete)
+# --- Style tweaks: softer card, nicer bullets ---
 st.markdown(
     """
     <style>
-        /* Make the dropdown label bold */
-        div[data-testid="stSelectbox"] label {font-weight:700;}
-        /* Add a subtle border & padding around the info box */
-        div[data-testid="stInfo"] {
+        /* Make tab labels a bit larger & bolder */
+        div[data-testid="stTabs"] button {font-weight:600;font-size:0.95rem;}
+        /* Add a subtle border & shadow to each tab body */
+        div[data-testid="stTab"] > div {
             border: 1px solid #e6e6e6;
             border-radius: 0.5rem;
-            padding: 0.75rem 1rem;
+            padding: 1rem 1.25rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
         }
+        /* Nicer bullet spacing */
+        ul {margin-top: 0;}
+        ul li {margin-bottom: 0.35rem;}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-st.markdown("## 🔍 Key Insights & Recommended Actions")
-
+# ---- Data structure (markdown strings) --------------------------------------
 insights = {
-    "Fog at dawn & sleet/hail at night → highest injuries": """\
+    "⚠️ Injuries – Fog & Night Sleet": """
 **Why it matters**  
-Limited visibility and slick surfaces sharply raise injury risk.
+Limited visibility + slick pavement ⮕ injury surge.
 
-**Action — Nashville DPW & OEM**  
-- Deploy **weather-activated speed-limit signs** on high-risk corridors  
-- Schedule **early-morning sanding/salting patrols** on bridges & overpasses\
+**Actions – Nashville DPW & OEM**
+- Deploy **weather-triggered variable speed signs** on fog/sleet corridors  
+- Schedule **pre-dawn sanding/salting** for bridges & overpasses  
 """,
-    "Clear but dark, unlit roads at night → highest fatalities": """\
+    "🌑 Fatalities – Dark, Unlit Roads": """
 **Why it matters**  
-Drivers over-estimate visibility; reaction times plummet in darkness.
+Clear skies fool drivers into overestimating visibility; reaction time drops.
 
-**Action — Metro Works & THSO**  
-- **Fast-track street-light installation** and add LED retrofits  
-- Refresh **reflective lane and shoulder markings** on rural arterials\
+**Actions – Metro Works & THSO**
+- **Fast-track LED street-light builds** on high-speed rural arterials  
+- Refresh **reflective lane/shoulder markings** & add rumble strips  
 """,
-    "Crash peaks: 5 AM weekends, 11 PM Friday, 8–10 PM Wednesday": """\
+    "🕒 Peak Times – 5 AM weekends, 11 PM Fri, Wed 8-10 PM": """
 **Why it matters**  
-Fatigue and impaired driving surge during these windows.
+Fatigue + impaired driving cluster in these windows.
 
-**Action — Metro Police & Transit Authority**  
-- Schedule **targeted DUI checkpoints and patrols**  
-- Pilot **late-night transit or ride-hail subsidies** to reduce drunk driving\
+**Actions – Metro Police & Transit**
+- Schedule **DUI checkpoints & visibility patrols** during peaks  
+- Pilot **late-night transit or ride-hail vouchers** to cut drunk-driving exposure  
 """,
-    "Front-to-rear collisions are most common": """\
+    "🚗 Crash Mode – Front-to-Rear": """
 **Why it matters**  
-Tailgating and abrupt braking trigger chain-reaction crashes.
+Tailgating + sudden braking trigger chain-reaction crashes.
 
-**Action — DPW Traffic Engineering**  
-- Launch a **“Leave 3 Seconds” anti-tailgating media blitz**  
-- **Re-time signals** along high-volume corridors to smooth flow\
+**Actions – DPW Traffic Engineering**
+- Launch **“Leave 3 Seconds” anti-tailgating media blitz**  
+- **Re-time signals** on high-volume corridors to smooth stop-and-go waves  
 """,
 }
 
-# Dropdown selector
-selection = st.selectbox("Select an insight to view details:", list(insights.keys()))
+# ---- Render tabs ------------------------------------------------------------
+tab_titles = list(insights.keys())
+tabs = st.tabs(tab_titles)
 
-# Nicely formatted info box
-st.info(insights[selection])
+for tab, key in zip(tabs, tab_titles):
+    with tab:
+        st.markdown(insights[key])
