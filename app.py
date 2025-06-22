@@ -207,7 +207,11 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
     hour_select = alt.selection_point(fields=['hour'])         # click-to-filter
     zoom_select = alt.selection_interval(bind='scales')        # drag-zoom / pan
 
-    # JS expression to convert 0-23 into 12 AM / 1 AM ... 11 PM
+    # ------ Dynamic domain: only show hours present ---------------------------
+    min_hour = int(scatter_data['hour'].min())
+    max_hour = int(scatter_data['hour'].max())
+
+    # JavaScript expression → 0→12 AM, 1→1 AM, …, 13→1 PM …
     hour_label_expr = (
         "datum.value === 0 ? '12 AM' : "
         "datum.value < 12  ? datum.value + ' AM' : "
@@ -215,7 +219,7 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
         "(datum.value - 12) + ' PM'"
     )
 
-    # ------ TOP CHART: scatter with zoom, pan, nice hour labels --------------
+    # ------ TOP CHART ---------------------------------------------------------
     scatter_chart = (
         alt.Chart(scatter_data)
         .mark_circle()
@@ -223,10 +227,8 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
             x=alt.X(
                 'hour:Q',
                 title='Hour of Day',
-                axis=alt.Axis(
-                    tickMinStep=1,
-                    labelExpr=hour_label_expr
-                )
+                scale=alt.Scale(domain=[min_hour, max_hour]),   # <— cuts off extra hours
+                axis=alt.Axis(tickMinStep=1, labelExpr=hour_label_expr)
             ),
             y=alt.Y('% Injury:Q', title='% of Accidents with Injury'),
             size=alt.Size('accident_count:Q', scale=alt.Scale(range=[10, 600]), legend=None),
@@ -246,7 +248,7 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
         )
     )
 
-    # ------ BOTTOM CHART: bar chart filtered by selected hour ---------------
+    # ------ BOTTOM CHART ------------------------------------------------------
     bar_data = (
         df_weather.groupby(['hour', 'Weather Description'])
         .size()
