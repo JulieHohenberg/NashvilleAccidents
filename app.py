@@ -205,8 +205,9 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
 
     # ------ Selections --------------------------------------------------------
     hour_select = alt.selection_point(fields=['hour'])         # click-to-filter
+    zoom_select = alt.selection_interval(bind='scales')        # drag-zoom / pan
 
-    # ------ TOP CHART ---------------------------------------------------------
+    # ------ TOP CHART: scatter with numeric 0-23 hour labels ------------------
     scatter_chart = (
         alt.Chart(scatter_data)
         .mark_circle()
@@ -214,8 +215,7 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
             x=alt.X(
                 'hour:Q',
                 title='Hour of Day',
-                scale=alt.Scale(domain=[min_hour, max_hour]),   # <— cuts off extra hours
-                axis=alt.Axis(tickMinStep=1, labelExpr=hour_label_expr)
+                axis=alt.Axis(tickMinStep=1)   # numeric labels (0–23)
             ),
             y=alt.Y('% Injury:Q', title='% of Accidents with Injury'),
             size=alt.Size('accident_count:Q', scale=alt.Scale(range=[10, 600]), legend=None),
@@ -235,7 +235,7 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
         )
     )
 
-    # ------ BOTTOM CHART ------------------------------------------------------
+    # ------ BOTTOM CHART: bar chart filtered by selected hour -----------------
     bar_data = (
         df_weather.groupby(['hour', 'Weather Description'])
         .size()
