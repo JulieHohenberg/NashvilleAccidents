@@ -214,31 +214,42 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
 
     # ------ TOP CHART: scatter with numeric 0-23 hour labels ------------------
     scatter_chart = (
-        alt.Chart(scatter_data)
-        .mark_circle()
-        .encode(
-            x=alt.X(
-                'hour:Q',
-                title='Hour of Day',
-                axis=alt.Axis(tickMinStep=1)   # numeric labels (0–23)
-            ),
-            y=alt.Y('% Injury:Q', title='% of Accidents with Injury'),
-            size=alt.Size('accident_count:Q', scale=alt.Scale(range=[10, 600]), legend=None),
-            color=alt.Color('Weather Description:N', legend=alt.Legend(title='Weather')),
-            tooltip=[
-                alt.Tooltip('hour:Q', title='Hour'),
-                'Weather Description',
-                alt.Tooltip('accident_count:Q', title='Accident Count'),
-                alt.Tooltip('% Injury:Q', format='.1f')
-            ]
-        )
-        .add_params(hour_select, zoom_select)
-        .properties(
-            width=800,
-            height=320,
-            title='Injury Rate by Hour and Weather Type'
-        )
+    alt.Chart(scatter_data)
+    .mark_circle()
+    .encode(
+        x=alt.X('hour:Q', title='Hour of Day', axis=alt.Axis(tickMinStep=1)),
+        y=alt.Y('% Injury:Q', title='% of Accidents with Injury'),
+        size=alt.Size('accident_count:Q',
+                      scale=alt.Scale(range=[10, 600]), legend=None),
+
+        # 🔹 1) full color for selected point(s), gray for the rest
+        color=alt.condition(
+            hour_select,
+            alt.Color('Weather Description:N', legend=alt.Legend(title='Weather')),
+            alt.value('#cccccc')
+        ),
+
+        # 🔹 2) solid opacity for selected, faint for others
+        opacity=alt.condition(hour_select, alt.value(1.0), alt.value(0.25)),
+
+        # 🔹 3) outline the selected bubble
+        stroke=alt.condition(hour_select, alt.value('black'), alt.value(None)),
+        strokeWidth=alt.condition(hour_select, alt.value(2), alt.value(0)),
+
+        tooltip=[
+            alt.Tooltip('hour:Q', title='Hour'),
+            'Weather Description',
+            alt.Tooltip('accident_count:Q', title='Accident Count'),
+            alt.Tooltip('% Injury:Q', format='.1f')
+        ]
     )
+    .add_params(hour_select, zoom_select)
+    .properties(
+        width=800,
+        height=320,
+        title='Injury Rate by Hour and Weather Type'
+    )
+)
 
     # ------ BOTTOM CHART: bar chart filtered by selected hour -----------------
     bar_data = (
@@ -265,7 +276,7 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
         )
     )
     # ------ Display combined charts -----------------------------------------
-    st.caption("🖱️ *Tip: drag to pan or zoom either chart; click a bubble to filter the bar chart.*")
+    st.caption("🖱️ *Tip: drag to pan or zoom either chart; click a weather bubble to filter the bar chart.*")
     st.altair_chart(alt.vconcat(scatter_chart, bar_chart), use_container_width=True)
 
 #-------------------------------------------------------------------------------------------------#
