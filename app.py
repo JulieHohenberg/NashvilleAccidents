@@ -88,7 +88,18 @@ Use your mouse to **zoom** and **pan** around the map to explore different neigh
 # Compute center of the map
 midpoint = (np.average(df["Lat"]), np.average(df["Long"]))
 
-# PyDeck heatmap layer with tooltips
+tile_layer = pdk.Layer(
+    "TileLayer",
+    data=None,
+    opacity=1,
+    tile_size=256,
+    url_template=(
+        "https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg"
+        "?key=GET_YOUR_OWN_FREE_KEY"
+    ),
+    attribution="© MapTiler © OpenStreetMap contributors",
+)
+
 heatmap_layer = pdk.Layer(
     "HeatmapLayer",
     data=df,
@@ -99,41 +110,26 @@ heatmap_layer = pdk.Layer(
     threshold=0.05,
     pickable=True,
     colorRange=[
-        [255,255,204],
-        [255,237,160],
-        [254,217,118],
-        [254,178, 76],
-        [253,141, 60],
-        [240, 59, 32],
+        [255,255,204],[255,237,160],[254,217,118],
+        [254,178, 76],[253,141, 60],[240, 59, 32],
     ],
 )
 
-# Define map view with zoom/pan enabled
-view_state = pdk.ViewState(
-    latitude=midpoint[0],
-    longitude=midpoint[1],
-    zoom=11,
-    pitch=40,
-    bearing=0,
-)
+view_state = pdk.ViewState(latitude=midpoint[0],
+                           longitude=midpoint[1],
+                           zoom=11, pitch=40, bearing=0)
 
-# Deck object
 deck = pdk.Deck(
-    layers=[heatmap_layer],
+    layers=[tile_layer, heatmap_layer],  # basemap first, data layer on top
     initial_view_state=view_state,
-    map_style="mapbox://styles/mapbox/satellite-v9",
-    tooltip={
-        "html": """
-            <b>Address:</b> {Location} <br/>
-            <b>Injuries:</b> {Number of Injuries} <br/>
-            <b>Fatalities:</b> {Number of Fatalities} <br/>
-            <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
-        """,
-        "style": {"font-size": "12px"},
-    },
+    tooltip={"html": """
+        <b>Address:</b> {Location}<br/>
+        <b>Injuries:</b> {Number of Injuries}<br/>
+        <b>Fatalities:</b> {Number of Fatalities}<br/>
+        <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
+    """, "style": {"font-size": "12px"}},
 )
 
-# Display in Streamlit
 st.pydeck_chart(deck, use_container_width=True)
 
 #-------------------------------------------------------------------------------------------------#
