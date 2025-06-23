@@ -183,7 +183,7 @@ with st.expander("Click a bubble to reveal how that hour compares across weather
     top_weather = df['Weather Description'].value_counts().nlargest(8).index.tolist()
     
     # “Select all” reset button (must appear *before* the multiselect)
-    if st.button("Select all weather conditions", key="select_all_weather_btn_1"):
+    if st.button("⛅ Select all weather conditions", key="select_all_weather_btn_1"):
         st.session_state["weather_sel"] = top_weather
     
     weather_sel = st.multiselect(
@@ -319,7 +319,7 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
         st.session_state["weather_sel_heat"] = top_weather2
 
     # “Select all” button updates that key *before* the widget is created
-    if st.button("Select all weather conditions", key="select_all_weather_btn"):
+    if st.button("⛅ Select all weather conditions", key="select_all_weather_btn"):
         st.session_state["weather_sel_heat"] = top_weather2
 
     # Now draw the multiselect that uses its own key
