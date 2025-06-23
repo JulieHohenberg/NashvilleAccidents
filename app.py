@@ -86,20 +86,23 @@ Use your mouse to **zoom** and **pan** around the map to explore different neigh
 """)
 
 # Compute center of the map
+# ── 1.  filter df + calculate midpoint exactly as you do ────────────────────
 midpoint = (np.average(df["Lat"]), np.average(df["Long"]))
 
-tile_layer = pdk.Layer(
+# ── 2.  basemap layer (Esri) ─────────────────────────────────────────────────
+esri_layer = pdk.Layer(
     "TileLayer",
     data=None,
-    opacity=1,
-    tile_size=256,
     url_template=(
-        "https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg"
-        "?key=GET_YOUR_OWN_FREE_KEY"
+        "https://server.arcgisonline.com/ArcGIS/rest/services/"
+        "World_Imagery/MapServer/tile/{z}/{y}/{x}"
     ),
-    attribution="© MapTiler © OpenStreetMap contributors",
+    attribution="© Esri, Maxar, Earthstar Geographics, and others",
+    min_zoom=0,
+    max_zoom=19,
 )
 
+# ── 3.  your heat-map layer (unchanged) ──────────────────────────────────────
 heatmap_layer = pdk.Layer(
     "HeatmapLayer",
     data=df,
@@ -115,19 +118,27 @@ heatmap_layer = pdk.Layer(
     ],
 )
 
-view_state = pdk.ViewState(latitude=midpoint[0],
-                           longitude=midpoint[1],
-                           zoom=11, pitch=40, bearing=0)
+# ── 4.  deck & view ──────────────────────────────────────────────────────────
+view_state = pdk.ViewState(
+    latitude=midpoint[0],
+    longitude=midpoint[1],
+    zoom=11,
+    pitch=40,
+    bearing=0,
+)
 
 deck = pdk.Deck(
-    layers=[tile_layer, heatmap_layer],  # basemap first, data layer on top
+    layers=[esri_layer, heatmap_layer],   # basemap first
     initial_view_state=view_state,
-    tooltip={"html": """
-        <b>Address:</b> {Location}<br/>
-        <b>Injuries:</b> {Number of Injuries}<br/>
-        <b>Fatalities:</b> {Number of Fatalities}<br/>
-        <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
-    """, "style": {"font-size": "12px"}},
+    tooltip={
+        "html": """
+            <b>Address:</b> {Location}<br/>
+            <b>Injuries:</b> {Number of Injuries}<br/>
+            <b>Fatalities:</b> {Number of Fatalities}<br/>
+            <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
+        """,
+        "style": {"font-size": "12px"},
+    },
 )
 
 st.pydeck_chart(deck, use_container_width=True)
