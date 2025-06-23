@@ -72,25 +72,24 @@ This dashboard walks you through an exploratory journey of traffic accident patt
 
 Let's start by examining where these accidents occur.
 """)
-# ── 0.  grab token (if it exists) ────────────────────────────────────────────
-MAPBOX_TOKEN = st.secrets.get("general", {}).get("MAPBOX_TOKEN", None)
-if MAPBOX_TOKEN:
-    pdk.settings.mapbox_api_key = MAPBOX_TOKEN
+############################################# MAP ###################################################################################################
+# ── 0. Inject Mapbox token ───────────────────────────────────────────────────
+# (If the token is missing, PyDeck falls back to a blank map.)
+pdk.settings.mapbox_api_key = st.secrets["general"]["MAPBOX_TOKEN"]
 
-# ── 1.  spatial filter (unchanged) ───────────────────────────────────────────
+# ── 1. Spatial filter for Nashville ──────────────────────────────────────────
 df = df[(df['Lat']  >= 36.0) & (df['Lat']  <= 36.4) &
         (df['Long'] >= -87.0) & (df['Long'] <= -86.5)]
 
 st.markdown("""
 ### 📍 Where Are Crashes Happening Most?
 
-Before diving into what causes crashes, let’s look at **where** they occur.  
-Darker colors = more accidents. Use your mouse to **zoom / pan**.
+Darker colors = more accidents. Use your mouse to **zoom** and **pan**.
 """)
 
 midpoint = (np.average(df["Lat"]), np.average(df["Long"]))
 
-# ── 2.  heat-map layer ───────────────────────────────────────────────────────
+# ── 2. Heat-map layer ────────────────────────────────────────────────────────
 heatmap_layer = pdk.Layer(
     "HeatmapLayer",
     data=df,
@@ -106,7 +105,6 @@ heatmap_layer = pdk.Layer(
     ],
 )
 
-# ── 3.  view settings ────────────────────────────────────────────────────────
 view_state = pdk.ViewState(
     latitude = midpoint[0],
     longitude = midpoint[1],
@@ -115,38 +113,20 @@ view_state = pdk.ViewState(
     bearing = 0,
 )
 
-# ── 4.  choose basemap based on token ────────────────────────────────────────
-if MAPBOX_TOKEN:               # ✅ token present → Mapbox satellite
-    deck = pdk.Deck(
-        layers=[heatmap_layer],
-        initial_view_state=view_state,
-        map_style="mapbox://styles/mapbox/satellite-v9",
-        tooltip={
-            "html": """
-                <b>Address:</b> {Location}<br/>
-                <b>Injuries:</b> {Number of Injuries}<br/>
-                <b>Fatalities:</b> {Number of Fatalities}<br/>
-                <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
-            """,
-            "style": {"font-size": "12px"},
-        },
-    )
-else:                          # 🚑 fallback → Carto (no token needed)
-    deck = pdk.Deck(
-        layers=[heatmap_layer],
-        initial_view_state=view_state,
-        map_provider="carto",
-        map_style="positron",   # alt: "dark-matter", "voyager"
-        tooltip={
-            "html": """
-                <b>Address:</b> {Location}<br/>
-                <b>Injuries:</b> {Number of Injuries}<br/>
-                <b>Fatalities:</b> {Number of Fatalities}<br/>
-                <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
-            """,
-            "style": {"font-size": "12px"},
-        },
-    )
+deck = pdk.Deck(
+    layers=[heatmap_layer],
+    initial_view_state=view_state,
+    map_style="mapbox://styles/mapbox/satellite-v9",  # <- satellite imagery
+    tooltip={
+        "html": """
+            <b>Address:</b> {Location}<br/>
+            <b>Injuries:</b> {Number of Injuries}<br/>
+            <b>Fatalities:</b> {Number of Fatalities}<br/>
+            <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
+        """,
+        "style": {"font-size": "12px"},
+    },
+)
 
 st.pydeck_chart(deck, use_container_width=True)
 
