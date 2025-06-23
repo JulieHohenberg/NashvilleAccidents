@@ -72,24 +72,23 @@ This dashboard walks you through an exploratory journey of traffic accident patt
 
 Let's start by examining where these accidents occur.
 """)
-############################################# MAP ###################################################################################################
-# ── 0. Inject Mapbox token ───────────────────────────────────────────────────
-# (If the token is missing, PyDeck falls back to a blank map.)
-pdk.settings.mapbox_api_key = st.secrets["general"]["MAPBOX_TOKEN"]
-
-# ── 1. Spatial filter for Nashville ──────────────────────────────────────────
-df = df[(df['Lat']  >= 36.0) & (df['Lat']  <= 36.4) &
+####################### MAP ##################################################3
+# Filter to valid lat/long range for Nashville
+df = df[(df['Lat'] >= 36.0) & (df['Lat'] <= 36.4) &
         (df['Long'] >= -87.0) & (df['Long'] <= -86.5)]
 
 st.markdown("""
 ### 📍 Where Are Crashes Happening Most?
 
-Darker colors = more accidents. Use your mouse to **zoom** and **pan**.
+Before diving into what causes crashes, let’s look at **where** they occur. The map below shows accident hot spots across the Nashville area. Darker colors mean more accidents.
+
+Use your mouse to **zoom** and **pan** around the map to explore different neighborhoods and clusters.
 """)
 
+# Compute center of the map
 midpoint = (np.average(df["Lat"]), np.average(df["Long"]))
 
-# ── 2. Heat-map layer ────────────────────────────────────────────────────────
+# PyDeck heatmap layer with tooltips
 heatmap_layer = pdk.Layer(
     "HeatmapLayer",
     data=df,
@@ -100,36 +99,42 @@ heatmap_layer = pdk.Layer(
     threshold=0.05,
     pickable=True,
     colorRange=[
-        [255,255,204],[255,237,160],[254,217,118],
-        [254,178, 76],[253,141, 60],[240, 59, 32],
+        [255,255,204],
+        [255,237,160],
+        [254,217,118],
+        [254,178, 76],
+        [253,141, 60],
+        [240, 59, 32],
     ],
 )
 
+# Define map view with zoom/pan enabled
 view_state = pdk.ViewState(
-    latitude = midpoint[0],
-    longitude = midpoint[1],
-    zoom = 11,
-    pitch = 40,
-    bearing = 0,
+    latitude=midpoint[0],
+    longitude=midpoint[1],
+    zoom=11,
+    pitch=40,
+    bearing=0,
 )
 
+# Deck object
 deck = pdk.Deck(
     layers=[heatmap_layer],
     initial_view_state=view_state,
-    map_style="mapbox://styles/mapbox/satellite-v9",  # <- satellite imagery
+    map_style="mapbox://styles/mapbox/satellite-v9",
     tooltip={
         "html": """
-            <b>Address:</b> {Location}<br/>
-            <b>Injuries:</b> {Number of Injuries}<br/>
-            <b>Fatalities:</b> {Number of Fatalities}<br/>
+            <b>Address:</b> {Location} <br/>
+            <b>Injuries:</b> {Number of Injuries} <br/>
+            <b>Fatalities:</b> {Number of Fatalities} <br/>
             <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
         """,
         "style": {"font-size": "12px"},
     },
 )
 
+# Display in Streamlit
 st.pydeck_chart(deck, use_container_width=True)
-
 
 #-------------------------------------------------------------------------------------------------#
 # Weather filter  (applies to *both* charts) 
