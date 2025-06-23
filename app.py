@@ -44,6 +44,8 @@ df['Weather Description'] = df['Weather Description'].replace('OTHER (NARRATIVE)
 exclude = ['OTHER', 'UNKNOWN']
 df = df[~df['Weather Description'].isin(exclude) &
         ~df['Illumination Description'].isin(exclude)]
+
+df['Reporting Officer'] = df['Reporting Officer'].astype(str)
 #-------------------------------------------------------------------------------------------------#
 # Title
 #-------------------------------------------------------------------------------------------------#
