@@ -134,8 +134,6 @@ deck = pdk.Deck(
 # Display in Streamlit
 st.pydeck_chart(deck, use_container_width=True)
 
-#############################################################################################################################
-
 
 
 
