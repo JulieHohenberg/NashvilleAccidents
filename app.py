@@ -83,10 +83,9 @@ Before diving into what causes crashes, let’s look at **where** they occur. Th
 Use your mouse to **zoom** and **pan** around the map to explore different neighborhoods and clusters.
 """)
 
-# Compute center of the map
 midpoint = (np.average(df["Lat"]), np.average(df["Long"]))
 
-# PyDeck heatmap layer with tooltips
+# ── 3. define the heat-map layer (unchanged) ─────────────────────────────────
 heatmap_layer = pdk.Layer(
     "HeatmapLayer",
     data=df,
@@ -97,41 +96,33 @@ heatmap_layer = pdk.Layer(
     threshold=0.05,
     pickable=True,
     colorRange=[
-        [255,255,204],
-        [255,237,160],
-        [254,217,118],
-        [254,178, 76],
-        [253,141, 60],
-        [240, 59, 32],
+        [255,255,204],[255,237,160],[254,217,118],
+        [254,178,76],[253,141,60],[240,59,32],
     ],
 )
 
-# Define map view with zoom/pan enabled
+# ── 4. choose a basemap that needs **no token** ──────────────────────────────
 view_state = pdk.ViewState(
-    latitude=midpoint[0],
-    longitude=midpoint[1],
-    zoom=11,
-    pitch=40,
-    bearing=0,
+    latitude=midpoint[0], longitude=midpoint[1],
+    zoom=11, pitch=40, bearing=0,
 )
 
-# Deck object
 deck = pdk.Deck(
     layers=[heatmap_layer],
     initial_view_state=view_state,
-    map_style="mapbox://styles/mapbox/satellite-v9",
+    map_provider="carto",           # <- free provider
+    map_style="positron",           # ["positron", "dark-matter", "voyager"]
     tooltip={
         "html": """
-            <b>Address:</b> {Location} <br/>
-            <b>Injuries:</b> {Number of Injuries} <br/>
-            <b>Fatalities:</b> {Number of Fatalities} <br/>
-            <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
+             <b>Address:</b> {Location}<br/>
+             <b>Injuries:</b> {Number of Injuries}<br/>
+             <b>Fatalities:</b> {Number of Fatalities}<br/>
+             <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
         """,
         "style": {"font-size": "12px"},
     },
 )
 
-# Display in Streamlit
 st.pydeck_chart(deck, use_container_width=True)
 
 #############################################################################################################################
