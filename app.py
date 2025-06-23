@@ -319,8 +319,8 @@ with st.expander("Click to explore lighting & weather interaction", expanded=Fal
         st.session_state["weather_sel"] = top_weather
 
     # 2️⃣  “Select all” button (updates the key *before* widget is drawn)
-    if st.button("Select all weather conditions", key="select_all_weather_btn"):
-        st.session_state["weather_sel"] = top_weather
+    if st.button("⛅ Select all weather conditions", key="select_all_weather_btn"):
+        st.session_state["weather_sel"] = top_weather2
 
 
     weather_sel_heat = st.multiselect(
