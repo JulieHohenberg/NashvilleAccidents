@@ -309,24 +309,24 @@ This next section explores how **lighting conditions** and **weather** interact 
 
 
 #======================== 2️⃣ WEATHER × LIGHTING ANALYSIS (HEATMAP) ============================#
+# ======================== 2️⃣ WEATHER × LIGHTING ANALYSIS (HEATMAP) ============================ #
 with st.expander("Click to explore lighting & weather interaction", expanded=False):
 
-    # ---------- Weather filter ----------
     top_weather2 = df['Weather Description'].value_counts().nlargest(8).index.tolist()
 
-    # 1️⃣  First run: create a default list in session_state
-    if "weather_sel" not in st.session_state:
-        st.session_state["weather_sel"] = top_weather
+    # Initialise a *separate* key for the heat-map selector
+    if "weather_sel_heat" not in st.session_state:
+        st.session_state["weather_sel_heat"] = top_weather2
 
-    # 2️⃣  “Select all” button (updates the key *before* widget is drawn)
-    if st.button("⛅ Select all weather conditions", key="select_all_weather_btn"):
-        st.session_state["weather_sel"] = top_weather2
+    # “Select all” button updates that key *before* the widget is created
+    if st.button("Select all weather conditions", key="select_all_weather_btn"):
+        st.session_state["weather_sel_heat"] = top_weather2
 
-
+    # Now draw the multiselect that uses its own key
     weather_sel_heat = st.multiselect(
         "Weather Condition(s)",
         options=top_weather2,
-        default=st.session_state.get("weather_sel_heat", top_weather2),
+        default=st.session_state["weather_sel_heat"],
         key="weather_sel_heat",
     )
 
