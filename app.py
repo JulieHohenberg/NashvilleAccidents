@@ -72,22 +72,25 @@ This dashboard walks you through an exploratory journey of traffic accident patt
 
 Let's start by examining where these accidents occur.
 """)
-####################### MAP ##################################################3
-# Filter to valid lat/long range for Nashville
-df = df[(df['Lat'] >= 36.0) & (df['Lat'] <= 36.4) &
+# ── 0.  grab token (if it exists) ────────────────────────────────────────────
+MAPBOX_TOKEN = st.secrets.get("general", {}).get("MAPBOX_TOKEN", None)
+if MAPBOX_TOKEN:
+    pdk.settings.mapbox_api_key = MAPBOX_TOKEN
+
+# ── 1.  spatial filter (unchanged) ───────────────────────────────────────────
+df = df[(df['Lat']  >= 36.0) & (df['Lat']  <= 36.4) &
         (df['Long'] >= -87.0) & (df['Long'] <= -86.5)]
 
 st.markdown("""
 ### 📍 Where Are Crashes Happening Most?
 
-Before diving into what causes crashes, let’s look at **where** they occur. The map below shows accident hot spots across the Nashville area. Darker colors mean more accidents.
-
-Use your mouse to **zoom** and **pan** around the map to explore different neighborhoods and clusters.
+Before diving into what causes crashes, let’s look at **where** they occur.  
+Darker colors = more accidents. Use your mouse to **zoom / pan**.
 """)
 
 midpoint = (np.average(df["Lat"]), np.average(df["Long"]))
 
-# ── 3. define the heat-map layer (unchanged) ─────────────────────────────────
+# ── 2.  heat-map layer ───────────────────────────────────────────────────────
 heatmap_layer = pdk.Layer(
     "HeatmapLayer",
     data=df,
@@ -99,35 +102,53 @@ heatmap_layer = pdk.Layer(
     pickable=True,
     colorRange=[
         [255,255,204],[255,237,160],[254,217,118],
-        [254,178,76],[253,141,60],[240,59,32],
+        [254,178, 76],[253,141, 60],[240, 59, 32],
     ],
 )
 
-# ── 4. choose a basemap that needs **no token** ──────────────────────────────
+# ── 3.  view settings ────────────────────────────────────────────────────────
 view_state = pdk.ViewState(
-    latitude=midpoint[0], longitude=midpoint[1],
-    zoom=11, pitch=40, bearing=0,
+    latitude = midpoint[0],
+    longitude = midpoint[1],
+    zoom = 11,
+    pitch = 40,
+    bearing = 0,
 )
 
-deck = pdk.Deck(
-    layers=[heatmap_layer],
-    initial_view_state=view_state,
-    map_provider="carto",           # <- free provider
-    map_style="positron",           # ["positron", "dark-matter", "voyager"]
-    tooltip={
-        "html": """
-             <b>Address:</b> {Location}<br/>
-             <b>Injuries:</b> {Number of Injuries}<br/>
-             <b>Fatalities:</b> {Number of Fatalities}<br/>
-             <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
-        """,
-        "style": {"font-size": "12px"},
-    },
-)
+# ── 4.  choose basemap based on token ────────────────────────────────────────
+if MAPBOX_TOKEN:               # ✅ token present → Mapbox satellite
+    deck = pdk.Deck(
+        layers=[heatmap_layer],
+        initial_view_state=view_state,
+        map_style="mapbox://styles/mapbox/satellite-v9",
+        tooltip={
+            "html": """
+                <b>Address:</b> {Location}<br/>
+                <b>Injuries:</b> {Number of Injuries}<br/>
+                <b>Fatalities:</b> {Number of Fatalities}<br/>
+                <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
+            """,
+            "style": {"font-size": "12px"},
+        },
+    )
+else:                          # 🚑 fallback → Carto (no token needed)
+    deck = pdk.Deck(
+        layers=[heatmap_layer],
+        initial_view_state=view_state,
+        map_provider="carto",
+        map_style="positron",   # alt: "dark-matter", "voyager"
+        tooltip={
+            "html": """
+                <b>Address:</b> {Location}<br/>
+                <b>Injuries:</b> {Number of Injuries}<br/>
+                <b>Fatalities:</b> {Number of Fatalities}<br/>
+                <b>Lat:</b> {Lat} &nbsp; <b>Long:</b> {Long}
+            """,
+            "style": {"font-size": "12px"},
+        },
+    )
 
 st.pydeck_chart(deck, use_container_width=True)
-
-#############################################################################################################################
 
 
 #-------------------------------------------------------------------------------------------------#
